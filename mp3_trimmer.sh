@@ -16,7 +16,9 @@ function main(){
 
     local -a TIME=()
 
-    for etime in ${@:2}; do
+    shift 1
+
+    for etime in ${@}; do
         if ! is_time "${etime}"; then
             echo "invalid format time: ${etime}"
             exit 1

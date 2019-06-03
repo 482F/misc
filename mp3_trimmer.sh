@@ -4,7 +4,7 @@ set -ue -o pipefail
 
 function main(){
     FILEPATH="${1}"
-    DURATION=$(ffmpeg -i ${FILEPATH} 2>&1 | grep "Duration" | cut -d ' ' -f 4 | sed s/,// | awk '{ split($1, A, ":"); split(A[3], B, "."); print 3600*A[1] + 60*A[2] + A[3]}' || true)
+    DURATION=$(calc_duration ${FILEPATH})
 
     if [ "${DURATION}" == "" ]; then
         echo "target file is not valid mp3 file"
@@ -22,6 +22,9 @@ function main(){
     trim_mp3 "${FILEPATH}" "$(name_outfile ${FILEPATH} ${index})" "${stime}" "${DURATION}"
 }
 
+function calc_duration(){
+    ffmpeg -i ${FILEPATH} 2>&1 | grep "Duration" | cut -d ' ' -f 4 | sed s/,// | awk '{ split($1, A, ":"); split(A[3], B, "."); print 3600*A[1] + 60*A[2] + A[3]}' || true
+}
 function name_outfile(){
     FILEPATH="${1}"
     INDEX="${2}"

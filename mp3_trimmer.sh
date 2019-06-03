@@ -24,10 +24,12 @@ function main(){
 
 function time_to_sec(){
     local TIME="${1}"
+    echo "${TIME}" | awk '{ split($1, A, ":"); C = ((A[3] != "") ? (A[1] * 3600 + A[2] * 60 + A[3]) : ((A[2] != "") ? (A[1] * 60 + A[2]) : $1)); print C }'
 }
 
 function calc_duration(){
-    ffmpeg -i ${FILEPATH} 2>&1 | grep "Duration" | cut -d ' ' -f 4 | sed s/,// | awk '{ split($1, A, ":"); split(A[3], B, "."); print 3600*A[1] + 60*A[2] + A[3]}' || true
+    local DURATION=$(ffmpeg -i ${FILEPATH} 2>&1 | grep "Duration" | cut -d ' ' -f 4 | sed s/,// || true)
+    time_to_sec "${DURATION}"
 }
 
 function name_outfile(){

@@ -14,12 +14,31 @@ function main(){
     local stime="0"
     local index=1
 
+    local -a TIME=()
+
     for etime in ${@:2}; do
+        if ! is_time "${etime}"; then
+            echo "invalid format time: ${etime}"
+            exit 1
+        fi
+        TIME+=( $(time_to_sec ${etime}) )
+    done
+    echo ${TIME[@]}
+
+    for etime in ${TIME[@]}; do
         trim_mp3 "${FILEPATH}" "$(name_outfile ${FILEPATH} ${index})" "${stime}" "${etime}"
         stime="${etime}"
         let index++
     done
     trim_mp3 "${FILEPATH}" "$(name_outfile ${FILEPATH} ${index})" "${stime}" "${DURATION}"
+}
+
+function is_time(){
+    if echo $1 | grep -qE "^((([0-9]{1,}:)?[0-5][0-9]:)?[0-5][0-9]|[0-9]+)(\.[0-9]+)?$"; then
+        return 0
+    else
+        return 1
+    fi
 }
 
 function time_to_sec(){

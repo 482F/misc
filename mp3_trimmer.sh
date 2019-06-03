@@ -6,9 +6,23 @@ function main(){
     local FILEPATH="${1}"
     local DURATION=$(calc_duration ${FILEPATH})
 
+    shift 1
+
     if [ "${DURATION}" == "" ]; then
         echo "target file is not valid mp3 file"
         exit 1
+    fi
+
+    if [ -f "${1}" ]; then
+        local -a ARGS=()
+        local INFOFILE="${1}"
+
+        while read line; do
+            ARGS+=( "${line%%,*}" )
+            ARGS+=( "${line#*,}" )
+        done < "${INFOFILE}"
+        main "${FILEPATH}" "${ARGS[@]}"
+        exit 0
     fi
 
     local -a TIME=()
@@ -16,7 +30,6 @@ function main(){
     local etime
     local oname
 
-    shift 1
 
     local index=1
     while [ "${1:-}" != "" ]; do

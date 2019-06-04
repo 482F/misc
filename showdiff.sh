@@ -4,9 +4,16 @@ set -ue -o pipefail
 
 function main(){
     local filepath="${1}"
+
+    if [ ! -f ${filepath} ]; then
+        echo "the file \"${filepath}\" is not exist"
+        exit 1
+    fi
+
     if ! echo "${filepath}" | grep -qE "^\/"; then
         filepath="./${filepath}"
     fi
+
     local num_a="${2}"
     local num_b=$((num_a+1))
     local content_a=$(n-th_content "${filepath}" "${num_a}")

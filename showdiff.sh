@@ -24,9 +24,23 @@ function main(){
     fi
     local content_a=$(n-th_content "${filepath}" "${num_a}" "${num}")
     local content_b=$(n-th_content "${filepath}" "${num_b}" "${num}")
+    local d=$(diff <(echo ${content_a}) <(echo ${content_b}))
+    if [ "${d}" == "" ]; then
+        echo "there is no difference"
+        echo ""
+        n-th_log "${num_a}"
+        exit 0
+    fi
+    local log=$(n-th_log "${num_a}")
     echo "${content_a}" > /tmp/showdiff_content_a
     echo "${content_b}" > /tmp/showdiff_content_b
-    vim -c "r! git log --skip ${num_a} -n 1" -c "w! /tmp/showdiff_commitlog | tabe | e /tmp/showdiff_content_a | vnew | e /tmp/showdiff_content_b | diffthis | normal " -c "diffthis" -c "set wrap | normal " -c "set wrap"
+    echo "${log}" > /tmp/showdiff_commitlog
+    vim -c "e /tmp/showdiff_commitlog | tabe | e /tmp/showdiff_content_a | vnew | e /tmp/showdiff_content_b | diffthis | normal " -c "diffthis" -c "set wrap | normal " -c "set wrap"
+}
+
+function n-th_log(){
+    local num="${1}"
+    git log --skip ${num} -n 1
 }
 
 function n-th_content(){

@@ -61,8 +61,9 @@ function main(){
         trim_mp3 "${FILEPATH}" "${oname}" "${stime}" "${etime}"
     done
 }
+
 function is_time(){
-    if echo $1 | grep -qE "^((([0-9]{1,}:)?[0-5][0-9]:)?[0-5][0-9]|[0-9]+)(\.[0-9]+)?$"; then
+    if echo $1 | grep -qE "^((([0-9]{1,}:)?[0-5]?[0-9]:)?[0-5]?[0-9]|[0-9]+)(\.[0-9]+)?$"; then
         return 0
     else
         return 1

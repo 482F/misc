@@ -12,25 +12,44 @@ function main(){
     fi
 
     local stime="0"
-    local index=1
 
     local -a TIME=()
+    local -a OUTNAME=()
+    local etime
+    local oname
 
     shift 1
 
-    for etime in ${@}; do
+    local index=1
+    while [ "${1:-}" != "" ]; do
+        etime="${1}"
         if ! is_time "${etime}"; then
-            echo "invalid format time: ${etime}"
-            exit 1
+            oname="${etime}"
+            break
         fi
-        TIME+=( $(time_to_sec ${etime}) )
-    done
-    TIME+=( ${DURATION} )
-
-    for etime in ${TIME[@]}; do
-        trim_mp3 "${FILEPATH}" "$(name_outfile ${FILEPATH} ${index})" "${stime}" "${etime}"
-        stime="${etime}"
+        TIME+=( $(time_to_sec "${etime}") )
+        shift 1
+        if ! is_time "${1:-0}"; then
+            oname="${1}"
+            shift 1
+        else
+            oname=$(name_outfile "${FILEPATH}" "${index}")
+        fi
+        OUTNAME+=( "${oname}" )
+        oname=""
         let index++
+    done
+    if [ "${oname}" == "" ]; then
+        oname=$(name_outfile "${FILEPATH}" "${index}")
+    fi
+    TIME+=( "${DURATION}" )
+    OUTNAME+=( "${oname}" )
+
+    for ((i = 0; i < ${#TIME[@]}; i++)); do
+        etime="${TIME[${i}]}"
+        oname="${OUTNAME[${i}]}"
+        trim_mp3 "${FILEPATH}" "${oname}" "${stime}" "${etime}"
+        stime="${etime}"
     done
 }
 
@@ -69,4 +88,4 @@ function trim_mp3(){
     ffmpeg -i "${TARGETFILEPATH}" -ss "${START_TIME}" -t "${TIME_DIFF}" "${OUTPUTFILEPATH}"
 }
 
-main $@
+main "$@"

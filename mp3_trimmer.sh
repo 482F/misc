@@ -11,10 +11,8 @@ function main(){
         exit 1
     fi
 
-    local stime="0"
-
     local -a TIME=()
-    local -a OUTNAME=()
+    local -a OUTNAME=("")
     local etime
     local oname
 
@@ -22,37 +20,34 @@ function main(){
 
     local index=1
     while [ "${1:-}" != "" ]; do
-        etime="${1}"
-        if ! is_time "${etime}"; then
-            oname="${etime}"
-            break
+        if ! is_time "${1}"; then
+            echo "invalid time format: ${1}"
+            exit 1
         fi
-        TIME+=( $(time_to_sec "${etime}") )
+        etime="${1}"
         shift 1
+
         if ! is_time "${1:-0}"; then
             oname="${1}"
             shift 1
         else
             oname=$(name_outfile "${FILEPATH}" "${index}")
         fi
+
+        TIME+=( $(time_to_sec "${etime}") )
         OUTNAME+=( "${oname}" )
-        oname=""
         let index++
     done
-    if [ "${oname}" == "" ]; then
-        oname=$(name_outfile "${FILEPATH}" "${index}")
-    fi
     TIME+=( "${DURATION}" )
-    OUTNAME+=( "${oname}" )
 
-    for ((i = 0; i < ${#TIME[@]}; i++)); do
+    etime="${TIME[0]}"
+    for ((i = 1; i < ${#TIME[@]}; i++)); do
+        stime="${etime}"
         etime="${TIME[${i}]}"
         oname="${OUTNAME[${i}]}"
         trim_mp3 "${FILEPATH}" "${oname}" "${stime}" "${etime}"
-        stime="${etime}"
     done
 }
-
 function is_time(){
     if echo $1 | grep -qE "^((([0-9]{1,}:)?[0-5][0-9]:)?[0-5][0-9]|[0-9]+)(\.[0-9]+)?$"; then
         return 0

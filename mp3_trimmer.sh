@@ -93,7 +93,7 @@ function trim_mp3(){
     local START_TIME="${3}"
     local END_TIME="${4}"
     local TIME_DIFF=$(echo "scale=2; ${END_TIME} - ${START_TIME}" | bc)
-    ffmpeg -i "${TARGETFILEPATH}" -ss "${START_TIME}" -t "${TIME_DIFF}" "${OUTPUTFILEPATH}"
+    ffmpeg -i "\"${TARGETFILEPATH}\"" -ss "${START_TIME}" -t "${TIME_DIFF}" "\"${OUTPUTFILEPATH}\""
 }
 
 main "$@"

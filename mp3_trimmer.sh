@@ -23,14 +23,13 @@ function main(){
         fi
         TIME+=( $(time_to_sec ${etime}) )
     done
-    echo ${TIME[@]}
+    TIME+=( ${DURATION} )
 
     for etime in ${TIME[@]}; do
         trim_mp3 "${FILEPATH}" "$(name_outfile ${FILEPATH} ${index})" "${stime}" "${etime}"
         stime="${etime}"
         let index++
     done
-    trim_mp3 "${FILEPATH}" "$(name_outfile ${FILEPATH} ${index})" "${stime}" "${DURATION}"
 }
 
 function is_time(){

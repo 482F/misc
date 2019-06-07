@@ -42,6 +42,9 @@ function main(){
 
         if ! is_time "${1:-0}"; then
             oname="${1}"
+            if ! echo "${oname}" | grep -qE ".mp3$"; then
+                oname="${oname}.mp3"
+            fi
             shift 1
         else
             oname=$(name_outfile "${FILEPATH}" "${index}")

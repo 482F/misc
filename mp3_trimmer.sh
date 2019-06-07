@@ -4,7 +4,7 @@ set -ue -o pipefail
 
 function main(){
     local FILEPATH="${1}"
-    local DURATION=$(calc_duration ${FILEPATH})
+    local DURATION=$(calc_duration "${FILEPATH}")
 
     shift 1
 
@@ -76,7 +76,7 @@ function time_to_sec(){
 }
 
 function calc_duration(){
-    local DURATION=$(ffmpeg -i ${FILEPATH} 2>&1 | grep "Duration" | cut -d ' ' -f 4 | sed s/,// || true)
+    local DURATION=$(ffmpeg -i "${FILEPATH}" 2>&1 | grep "Duration" | cut -d ' ' -f 4 | sed s/,// || true)
     time_to_sec "${DURATION}"
 }
 

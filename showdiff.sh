@@ -19,7 +19,7 @@ function main(){
     local num_a="$((${NoC}-${num}))"
     local num_b=$((num_a+1))
     if [ ${num_a} -lt 0 ] || [ ${NoC} -lt ${num_b} ]; then
-        echo "there is no commit number \"${num}\". please set valid number: 1-$((${NoC}-1))" 1>&2
+        echo "there is no commit number \"${num}\". please set valid number: 1-$((${NoC}))" 1>&2
         exit 1
     fi
     local content_a=$(n-th_content "${filepath}" "${num_a}" "${num}")

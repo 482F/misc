@@ -9,6 +9,7 @@
 # 使用法: ./connect_consecutive_insert.py [--check] filepath
 
 import sys
+import os
 import re
 import subprocess
 import time
@@ -52,7 +53,7 @@ for line in body:
 result = result[:-1]
 
 if is_check:
-    tmp_path = "/tmp/" + sys.argv[0] + str(time.time())
+    tmp_path = "/tmp/" + os.path.basename(sys.argv[0]) + str(time.time())
     with open(tmp_path, mode="w") as f:
         f.write(result)
     subprocess.check_call(["vimdiff", path, tmp_path])

@@ -57,5 +57,6 @@ if is_check:
     with open(tmp_path, mode="w") as f:
         f.write(result)
     subprocess.check_call(["vimdiff", path, tmp_path])
+    os.remove(tmp_path)
 else:
     print(result)

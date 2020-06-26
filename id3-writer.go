@@ -148,14 +148,37 @@ func runVim(path string){
     checkErr(err)
 }
 
+func dirWalk(dir string) []string{
+    fInfo, err := os.Stat(dir)
+    checkErr(err)
+    if !(fInfo.IsDir()){
+        return []string{dir}
+    }
+    files, err := ioutil.ReadDir(dir)
+    checkErr(err)
+    var paths []string
+    for _, file := range files{
+        if file.IsDir(){
+            paths = append(paths, dirWalk(filepath.Join(dir, file.Name()))...)
+            continue
+        }
+        paths = append(paths, filepath.Join(dir, file.Name()))
+    }
+    return paths
+}
+
 func main(){
     flag.Parse()
     args := flag.Args()
-    var allPaths = []string{}
+    var allTempPaths = []string{}
     for _, arg := range args{
         paths, err := filepath.Glob(arg)
         checkErr(err)
-        allPaths = append(allPaths, paths...)
+        allTempPaths = append(allTempPaths, paths...)
+    }
+    var allPaths = []string{}
+    for _, path := range allTempPaths{
+        allPaths = append(allPaths, dirWalk(path)...)
     }
     id3DataArr := make([]*Id3Data, len(allPaths))
     for ind, path := range allPaths{

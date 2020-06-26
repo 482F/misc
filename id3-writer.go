@@ -2,6 +2,7 @@ package main
 import (
     id3 "github.com/mikkyang/id3-go"
     "strings"
+    "fmt"
     "log"
     "flag"
     "path/filepath"
@@ -188,7 +189,6 @@ func main(){
     for k := 0; k < 4; k++{
         tmpFiles[k], err = ioutil.TempFile("", "id3-writer")
         defer tmpFiles[k].Close()
-        defer os.Remove(tmpFiles[k].Name())
         checkErr(err)
         tmpFiles[k].WriteString(files[k])
         tmpPaths[k] = tmpFiles[k].Name()
@@ -201,7 +201,13 @@ func main(){
         tmpFileBodies[k] = string(allFileb)
     }
     readFiles(id3DataArr, tmpFileBodies)
-    for _, id := range id3DataArr{
-        id.writeFile()
+    NoID := len(id3DataArr)
+    for ind, id := range id3DataArr{
+        id.writeMP3File()
+        fmt.Printf("\r%d/%d", ind+1, NoID)
+    }
+    fmt.Println("")
+    for k := 0; k < 4; k++{
+        os.Remove(tmpFiles[k].Name())
     }
 }

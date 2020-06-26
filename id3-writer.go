@@ -74,12 +74,15 @@ func (id *Id3Data) writeMP3File(){
     }
     checkErr(err)
     if id.isTitleEdited{
+        mp3File.SetTitle("")
         mp3File.SetTitle(id.Title)
     }
     if id.isArtistEdited{
+        mp3File.SetArtist("")
         mp3File.SetArtist(id.Artist)
     }
     if id.isAlbumEdited{
+        mp3File.SetAlbum("")
         mp3File.SetAlbum(id.Album)
     }
 }

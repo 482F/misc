@@ -88,6 +88,9 @@ func (id *Id3Data) writeArr() []string{
 }
 
 func (id *Id3Data) readArr(arr []string) {
+    if (arr[0] == ""){
+        return
+    }
     if (id.Name != arr[0] + ".mp3"){
         id.setName(arr[0] + ".mp3")
     }

@@ -136,7 +136,7 @@ func checkErr(err error){
 }
 
 func openTmpFiles(paths []string){
-    cmd := exec.Command("vim", "-c", "set scb", "-c", "normal ", "-c", "set scb", "-c", "normal ", "-c", "set scb", "-c", "normal ", "-c", "set scb", "-c", "normal ", "-O", paths[0], paths[1], paths[2], paths[3])
+    cmd := exec.Command("vim", "-c", "nnoremap <S-Tab> W | :nnoremap <Tab> w", "-c", "set scrollbind | :set cursorbind", "-c", "normal ", "-c", "set scrollbind | :set cursorbind", "-c", "normal ", "-c", "set scrollbind | :set cursorbind", "-c", "normal ", "-c", "set scrollbind | :set cursorbind", "-c", "normal ", "-O", paths[0], paths[1], paths[2], paths[3])
     cmd.Stdin = os.Stdin
     cmd.Stdout = os.Stdout
     cmd.Stderr = os.Stderr

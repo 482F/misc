@@ -181,9 +181,12 @@ func main(){
         allPaths = append(allPaths, dirWalk(path)...)
     }
     id3DataArr := make([]*Id3Data, len(allPaths))
+    NoID := len(id3DataArr)
     for ind, path := range allPaths{
         id3DataArr[ind] = newId3Data(path)
+        fmt.Printf("\r%d/%d", ind+1, NoID)
     }
+    fmt.Println("")
     files := writeFiles(id3DataArr)
     tmpFiles := make([]*os.File, 4)
     tmpFileBodies := make([]string, 4)
@@ -204,7 +207,6 @@ func main(){
         tmpFileBodies[k] = string(allFileb)
     }
     readFiles(id3DataArr, tmpFileBodies)
-    NoID := len(id3DataArr)
     for ind, id := range id3DataArr{
         id.writeMP3File()
         fmt.Printf("\r%d/%d", ind+1, NoID)

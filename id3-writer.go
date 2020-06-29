@@ -83,45 +83,46 @@ func (id *Id3Data) writeFile(){
     }
 }
 
-func (id *Id3Data) writeTSV() string{
-    return id.Name[:len(id.Name)-4] + "\t" + id.Title + "\t" + id.Artist + "\t" + id.Album
+func (id *Id3Data) writeArr() []string{
+    return []string{id.Name, id.Title, id.Artist, id.Album}
 }
 
-func (id *Id3Data) readTSV(TSV string) {
-    slice := strings.Split(TSV, "\t")
-    l := len(slice)
-    if (l <= 0){
-        return
+func (id *Id3Data) readArr(arr []string) {
+    if (id.Name != arr[0] + ".mp3"){
+        id.setName(arr[0] + ".mp3")
     }
-    if (id.Name != slice[0] + ".mp3"){
-        id.setName(slice[0] + ".mp3")
+    if (arr[1] == ""){
+        arr[1] = arr[0]
     }
-    slice = append(slice, []string{"", "", ""}...)
-    if (slice[1] == ""){
-        slice[1] = slice[0]
+    if (id.Title != arr[1]){
+        id.setTitle(arr[1])
     }
-    if (id.Title != slice[1]){
-        id.setTitle(slice[1])
+    if (id.Artist != arr[2]){
+        id.setArtist(arr[2])
     }
-    if (id.Artist != slice[2]){
-        id.setArtist(slice[2])
-    }
-    if (id.Album != slice[3]){
-        id.setAlbum(slice[3])
+    if (id.Album != arr[3]){
+        id.setAlbum(arr[3])
     }
 }
 
-func writeTSVs(ids []*Id3Data) []string{
-    TSVs := make([]string, len(ids))
+func writeFiles(ids []*Id3Data) []string{
+    files := []string{"", "", "", ""}
+    for _, id := range ids{
+        files[0] += id.Name[:len(id.Name)-4] + "\n"
+        files[1] += id.Title + "\n"
+        files[2] += id.Artist + "\n"
+        files[3] += id.Album + "\n"
+    }
+    return files
+}
+
+func readFiles(ids []*Id3Data, files []string){
+    filess := make([][]string, 4)
+    for k := 0; k < 4; k++{
+        filess[k] = strings.Split(files[k] + strings.Repeat("\n", len(ids)), "\n")
+    }
     for ind, id := range ids{
-        TSVs[ind] = id.writeTSV()
-    }
-    return TSVs
-}
-
-func readTSVs(ids []*Id3Data, TSVs []string){
-    for ind, id := range ids{
-        id.readTSV(TSVs[ind])
+        id.readArr([]string{filess[0][ind], filess[1][ind], filess[2][ind], filess[3][ind]})
     }
 }
 
@@ -131,8 +132,8 @@ func checkErr(err error){
     }
 }
 
-func runVim(path string){
-    cmd := exec.Command("vim", path)
+func openTmpFiles(paths []string){
+    cmd := exec.Command("vim", "-O", paths[0], paths[1], paths[2], paths[3])
     cmd.Stdin = os.Stdin
     cmd.Stdout = os.Stdout
     cmd.Stderr = os.Stderr
@@ -176,19 +177,27 @@ func main(){
     for ind, path := range allPaths{
         id3DataArr[ind] = newId3Data(path)
     }
-    TSVs := writeTSVs(id3DataArr)
-    allTSV := strings.Join(TSVs, "\n")
-    tmpFile, err := ioutil.TempFile("", "id3-writer")
-    defer tmpFile.Close()
-    defer os.Remove(tmpFile.Name())
-    checkErr(err)
-    tmpFile.WriteString(allTSV)
-    runVim(tmpFile.Name())
-    allTSVb, err := ioutil.ReadFile(tmpFile.Name())
-    allTSV = string(allTSVb)
-    checkErr(err)
-    TSVs = strings.Split(allTSV, "\n")
-    readTSVs(id3DataArr, TSVs)
+    files := writeFiles(id3DataArr)
+    tmpFiles := make([]*os.File, 4)
+    tmpFileBodies := make([]string, 4)
+    tmpPaths := make([]string, 4)
+    var err error
+    for k := 0; k < 4; k++{
+        tmpFiles[k], err = ioutil.TempFile("", "id3-writer")
+        defer tmpFiles[k].Close()
+        defer os.Remove(tmpFiles[k].Name())
+        checkErr(err)
+        tmpFiles[k].WriteString(files[k])
+        tmpPaths[k] = tmpFiles[k].Name()
+    }
+    openTmpFiles(tmpPaths)
+    var allFileb []byte
+    for k := 0; k < 4; k++{
+        allFileb, err = ioutil.ReadFile(tmpPaths[k])
+        checkErr(err)
+        tmpFileBodies[k] = string(allFileb)
+    }
+    readFiles(id3DataArr, tmpFileBodies)
     for _, id := range id3DataArr{
         id.writeFile()
     }

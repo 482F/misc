@@ -96,23 +96,15 @@ func (id *Id3Data) readTSV(TSV string) {
     if (id.Name != slice[0] + ".mp3"){
         id.setName(slice[0] + ".mp3")
     }
-    if (l <= 1){
-        return
-    }
+    slice = append(slice, []string{"", "", ""}...)
     if (slice[1] == ""){
         slice[1] = slice[0]
     }
     if (id.Title != slice[1]){
         id.setTitle(slice[1])
     }
-    if (l <= 2){
-        return
-    }
     if (id.Artist != slice[2]){
         id.setArtist(slice[2])
-    }
-    if (l <= 3){
-        return
     }
     if (id.Album != slice[3]){
         id.setAlbum(slice[3])

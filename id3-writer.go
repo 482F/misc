@@ -27,7 +27,7 @@ func newId3Data(path string) *Id3Data{
     id3Data := new(Id3Data)
     id3Data.Path = path
     id3Data.Directory, id3Data.Name = filepath.Split(id3Data.Path)
-    id3Data.readFile()
+    id3Data.readMP3File()
     id3Data.isNameEdited = false
     id3Data.isTitleEdited = false
     id3Data.isArtistEdited = false
@@ -55,7 +55,7 @@ func (id *Id3Data) setAlbum(album string){
     id.isAlbumEdited = true
 }
 
-func (id *Id3Data) readFile(){
+func (id *Id3Data) readMP3File(){
     mp3File, err := id3.Open(id.Path)
     defer mp3File.Close()
     checkErr(err)
@@ -64,7 +64,7 @@ func (id *Id3Data) readFile(){
     id.Album = mp3File.Album()
 }
 
-func (id *Id3Data) writeFile(){
+func (id *Id3Data) writeMP3File(){
     mp3File, err := id3.Open(id.Path)
     defer mp3File.Close()
     checkErr(err)

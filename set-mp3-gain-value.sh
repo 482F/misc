@@ -12,7 +12,7 @@ shift 1
 function expand-files(){
     for file in "${@}"; do
         if [ -d "${file}" ]; then
-            find "${file}" | grep -E *\.mp3
+            find "${file}" | grep -E *\.mp3$
         elif [ -f "${file}" ]; then
             echo "${file}"
         else
@@ -24,9 +24,9 @@ function expand-files(){
 function aacgain-func(){
     echo -e "\e[1F${ind}/${NoF}"
     ind=$((ind+1))
-    res="$(aacgain -r -c -p -d "${1}" "${2}")"
+    res="$(aacgain -r -c -p -d "${1}" "${2}" || true)"
     if ! echo "${res}" | grep -Eq "No changes to"; then
-        echo "${res}"
+        echo -e "${res}\n"
     fi
 }
 

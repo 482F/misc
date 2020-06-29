@@ -152,7 +152,11 @@ func dirWalk(dir string) []string{
     fInfo, err := os.Stat(dir)
     checkErr(err)
     if !(fInfo.IsDir()){
-        return []string{dir}
+        if (dir[len(dir)-4:] == ".mp3"){
+            return []string{dir}
+        }else{
+            return []string{}
+        }
     }
     files, err := ioutil.ReadDir(dir)
     checkErr(err)

@@ -209,7 +209,7 @@ func main(){
     readFiles(id3DataArr, tmpFileBodies)
     for ind, id := range id3DataArr{
         id.writeMP3File()
-        fmt.Printf("\r%d/%d", ind+1, NoID)
+        fmt.Printf("\r%d/%d: %s", ind+1, NoID, id.Path)
     }
     fmt.Println("")
     for k := 0; k < 4; k++{

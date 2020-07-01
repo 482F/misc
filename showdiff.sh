@@ -32,10 +32,14 @@ function main(){
         exit 0
     fi
     local log=$(n-th_log "${num_a}")
-    echo "${content_a}" > /tmp/showdiff_content_a
-    echo "${content_b}" > /tmp/showdiff_content_b
-    echo "${log}" > /tmp/showdiff_commitlog
+    local CNTA="/tmp/showdiff_content_a"
+    local CNTB="/tmp/showdiff_content_b"
+    local CMTL="/tmp/showdiff_commitlog"
+    echo "${content_a}" > "${CNTA}"
+    echo "${content_b}" > "${CNTB}"
+    echo "${log}" > "${CMTL}"
     vim -c "e /tmp/showdiff_commitlog | tabe | e /tmp/showdiff_content_a | vnew | e /tmp/showdiff_content_b | diffthis | normal " -c "diffthis" -c "set wrap | normal " -c "set wrap"
+    rm "${CNTA}" "${CNTB}" "${CMTL}"
 }
 
 function n-th_log(){

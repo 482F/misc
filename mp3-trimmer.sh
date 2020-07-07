@@ -100,4 +100,5 @@ function trim_mp3(){
     ffmpeg -i "${TARGETFILEPATH}" -ss "${START_TIME}" -t "${TIME_DIFF}" "${OUTPUTFILEPATH}"
 }
 
+cd "$(dirname "${1}")"
 main "$@"

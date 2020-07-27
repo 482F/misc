@@ -1,8 +1,11 @@
 package main
 import (
     id3 "github.com/mikkyang/id3-go"
+    "github.com/mikkyang/id3-go/v1"
+    "github.com/mikkyang/id3-go/v2"
     "strings"
     "fmt"
+    "io"
     "log"
     "flag"
     "path/filepath"
@@ -66,24 +69,48 @@ func (id *Id3Data) readMP3File(){
 }
 
 func (id *Id3Data) writeMP3File(){
-    mp3File, err := id3.Open(id.Path)
-    defer mp3File.Close()
+    mp3v1RawFile, err := os.Open(id.Path)
+    defer mp3v1RawFile.Close()
     checkErr(err)
+
+    var TagSize int64 = 128
+    mp3v1RawFile.Seek(-TagSize, os.SEEK_END)
+    data := make([]byte, TagSize)
+    n, err := io.ReadFull(mp3v1RawFile, data)
+    if !(n < int(TagSize) || err != nil || string(data[:3]) != "TAG"){
+        mp3v1File, err := id3.Open(id.Path)
+        defer mp3v1File.Close()
+        checkErr(err)
+
+        mp3v1File.Tagger = v1.ParseTag(mp3v1RawFile)
+
+        mp3v1File.SetTitle("")
+        mp3v1File.SetArtist("")
+        mp3v1File.SetAlbum("")
+    }
+    mp3v2File, err := id3.Open(id.Path)
+    defer mp3v2File.Close()
+    checkErr(err)
+
+    mp3v2RawFile, err := os.Open(id.Path)
+    defer mp3v2RawFile.Close()
+    checkErr(err)
+
+    mp3v2File.Tagger = v2.ParseTag(mp3v2RawFile)
     if id.isNameEdited{
         err = os.Rename(id.Path, id.Directory + id.Name)
     }
-    checkErr(err)
     if id.isTitleEdited{
-        mp3File.SetTitle("")
-        mp3File.SetTitle(id.Title)
+        mp3v2File.SetTitle("")
+        mp3v2File.SetTitle(id.Title)
     }
     if id.isArtistEdited{
-        mp3File.SetArtist("")
-        mp3File.SetArtist(id.Artist)
+        mp3v2File.SetArtist("")
+        mp3v2File.SetArtist(id.Artist)
     }
     if id.isAlbumEdited{
-        mp3File.SetAlbum("")
-        mp3File.SetAlbum(id.Album)
+        mp3v2File.SetAlbum("")
+        mp3v2File.SetAlbum(id.Album)
     }
 }
 

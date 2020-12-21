@@ -11,30 +11,85 @@ import (
 )
 
 type FilePath struct{
+    assignMap map[string]*FilePath
+    originalPath string
     Path string
     Directory string
     Name string
     isEdited bool
+    isMoving bool
 }
 
-func newFilePath(path string) *FilePath{
+func newFilePath(assignMap map[string]*FilePath, path string) *FilePath{
     filePath := new(FilePath)
+    filePath.assignMap = assignMap
     filePath.Path = path
-    filePath.Directory, filePath.Name = filepath.Split(filePath.Path)
+    filePath.originalPath = path
+    _, filePath.Directory, filePath.Name, _, _ = splitFileName(path)
     filePath.isEdited = false
+    filePath.isMoving = false
     return filePath
+}
+
+func (fp *FilePath) isCollide() (bool, *FilePath){
+    cfp, ic := fp.assignMap[fp.Path]
+    return ic, cfp
 }
 
 func (fp *FilePath) setName(name string){
     fp.Name = name
+    fp.Path = fp.Directory + fp.Name
+    fp.assignMap[fp.originalPath] = fp
     fp.isEdited = true
 }
 
-func (fp *FilePath) move(){
-    if fp.isEdited{
-        err := os.Rename(fp.Path, fp.Directory + fp.Name)
-        checkErr(err)
+func (fp *FilePath) isAlreadyExist() bool{
+    return isAlreadyExist(fp.Path)
+}
+
+func (fp *FilePath) makeAltPath() string{
+    if !isAlreadyExist(fp.Path){
+        return fp.Path
     }
+    var index int = 1
+    var altPath string
+    var pathWithoutExt, ext string
+    pathWithoutExt, _, _, _, ext = splitFileName(fp.Path)
+    for{
+        altPath = fmt.Sprintf(pathWithoutExt + "_%d" + ext, index)
+        if !isAlreadyExist(altPath){
+            return altPath
+        }
+        index += 1
+    }
+}
+
+func (fp *FilePath) move(){
+    fp.isMoving = true
+    if fp.isEdited{
+        if f, cfp := fp.isCollide(); f{
+            if cfp.isMoving{
+                var altPath string = cfp.makeAltPath()
+                var originalTarget string = cfp.Path
+                cfp.Path = altPath
+                cfp.move()
+                cfp.isMoving = true
+                cfp.originalPath = altPath
+                cfp.Path = originalTarget
+            }else{
+                cfp.move()
+            }
+        }
+        if fp.isAlreadyExist(){
+            fp.Path = fp.makeAltPath()
+        }
+        err := os.Rename(fp.originalPath, fp.Path)
+        checkErr(err)
+        fp.originalPath = fp.Path
+    }
+    fp.isMoving = false
+    fp.isEdited = false
+    fp.originalPath = fp.Path
 }
 
 func (fp *FilePath) readArr(newName string) {
@@ -44,6 +99,11 @@ func (fp *FilePath) readArr(newName string) {
     if (fp.Name != newName){
         fp.setName(newName)
     }
+}
+
+func isAlreadyExist(path string) bool{
+    _, err := os.Stat(path)
+    return err == nil
 }
 
 func writeFiles(fps []*FilePath) []string{
@@ -60,6 +120,15 @@ func readFile(fps []*FilePath, tmpFile string){
     for ind, fp := range fps{
         fp.readArr(names[ind])
     }
+}
+
+func splitFileName(path string) (string, string, string, string, string){
+    var pathWithoutExt, directory, name, nameWithoutExt, ext string
+    directory, name = filepath.Split(path)
+    ext = filepath.Ext(name)
+    nameWithoutExt = name[:len(name)-len(filepath.Ext(name))]
+    pathWithoutExt = directory + nameWithoutExt
+    return pathWithoutExt, directory, name, nameWithoutExt, ext
 }
 
 func checkErr(err error){
@@ -107,8 +176,9 @@ func main(){
     }
     filePathArr := make([]*FilePath, len(allPaths))
     NoID := len(filePathArr)
+    var assignMap map[string]*FilePath = make(map[string]*FilePath)
     for ind, path := range allPaths{
-        filePathArr[ind] = newFilePath(path)
+        filePathArr[ind] = newFilePath(assignMap, path)
         fmt.Printf("\r%d/%d", ind+1, NoID)
     }
     fmt.Println("")

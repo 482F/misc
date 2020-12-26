@@ -1,3 +1,4 @@
+//usr/bin/env go run $0 $@; exit
 package main
 import (
     id3 "github.com/mikkyang/id3-go"

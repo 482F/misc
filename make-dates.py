@@ -28,7 +28,7 @@ result=""
 for file_path in file_paths:
     m = re.search(pattern, file_path)
     date_str = ""
-    result += file_path + ","
+    result += os.path.abspath(file_path) + ","
     if m != None:
         md = m.groupdict()
         year = md.get("year", "")

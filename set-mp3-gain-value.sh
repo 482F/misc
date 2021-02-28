@@ -21,10 +21,10 @@ function expand-files(){
         fi
     done
 }
-function aacgain-func(){
+function mp3gain-func(){
     echo -e "\e[1F${ind}/${NoF}"
     ind=$((ind+1))
-    res="$(aacgain -r -c -p -d "${1}" "${2}" || true)"
+    res="$(mp3gain -r -c -p -d "${1}" "${2}" || true)"
     if ! echo "${res}" | grep -Eq "No changes to"; then
         echo -e "${res}\n"
     fi
@@ -34,6 +34,6 @@ EXPANDED_FILES="$(expand-files "${@}")"
 NoF="$(echo "${EXPANDED_FILES}" | wc -l)"
 
 echo "${EXPANDED_FILES}" | while read file; do
-    aacgain-func "${DIFF}" "${file}"
+    mp3gain-func "${DIFF}" "${file}"
 done
 echo

@@ -1,9 +1,9 @@
 - 実行には ffmpeg と bc が必要
 - foo.txt を用意し、以下のようにする
 ```
-0:00,a
-1:00,b
-2:00,c
+0:00,a.mp3
+1:00,b.mp3
+2:00,c.mp3
 ```
 - ./mp3-trimmer.sh bar.mp3 foo.txt を実行する
 - a.mp3, b.mp3, c.mp3 が出力される

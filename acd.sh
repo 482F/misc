@@ -27,7 +27,7 @@ remove(){
 
 add(){
   local key="${1:-}"
-  local path="$(readlink -f ${2:-})"
+  local path="$(readlink -f ${2:-.})"
   if [ "${key}" = "" ] || [ "${path}" = "" ]; then
     return 1
   fi

@@ -23,7 +23,7 @@ function stop() {
 }
 
 function attach() {
-    tmux a -t "${SESSION_NAME}"
+    TMUX="" tmux a -t "${SESSION_NAME}"
 }
 
 

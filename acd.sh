@@ -50,6 +50,9 @@ alias-cd(){
 
 main(){
   local DOT_ACD=~/.acd
+  if [ ! -f "${DOT_ACD}" ]; then
+    touch "${DOT_ACD}"
+  fi
   if [ "${1:-}" = "" ]; then
     cat "${DOT_ACD}"
   elif [ "${1:-}" = "-a" ] || [ "${1:-}" = "add" ]; then

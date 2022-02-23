@@ -1,3 +1,17 @@
+# gitbash や wsl 等 bash 環境で動くスクリプト
+# ~/.bashrc で
+# alias acd="source /usr/local/bin/acd.sh"
+# 等 source で呼び出す必要あり
+#
+# usage:
+# acd -a alias path
+#   path を alias で登録する
+#   既に alias が存在する場合は上書きされる
+# acd alias
+#   alias に紐づいているパスに cd する
+# acd -d alias
+#   alias の登録を削除する
+
 remove(){
   local key="${1:-}"
   if [ "${key}" = "" ] ; then

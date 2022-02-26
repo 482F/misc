@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# usage: findv regexp [targetpath]
+# 第一引数に与えた正規表現で、第二引数内 (未指定の場合はカレントディレクトリ) のディレクトリ内のファイルの名前を再帰的に検索し、
+# マッチしたファイルを候補として表示し、入力した番号のファイルをエディタで開く
+# エディタは環境変数 FINDV_EDITOR に指定されたものが使われ、未指定の場合は vim が開く
+# findecho にパスが通っている必要がある
+
+set -ue -o pipefail
+
+function main(){
+  local TARGET_FILE
+  TARGET_FILE="$(findecho "${1:-}" "${2:-}")"
+  ${FINDV_EDITOR:-vim} "${TARGET_FILE}"
+}
+
+main "${@}"

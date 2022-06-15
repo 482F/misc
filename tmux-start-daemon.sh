@@ -2,10 +2,10 @@
 
 set -ue -o pipefail
 
-MODE="${1}"
+MODE="${1:-}"
 SESSION_NAME="$(pwd)"
 
-shift 1
+shift 1 || true
 
 COMMANDS="${@}"
 
@@ -31,7 +31,7 @@ if [ "${MODE}" = "start" ]; then
     start
 elif [ "${MODE}" = "stop" ]; then
     stop
-elif [ "${MODE}" = "attach" ]; then
+elif [ "${MODE}" = "attach" -o "${MODE}" = "" ]; then
     attach
 elif [ "${MODE}" = "stach" ]; then
     start && attach

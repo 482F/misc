@@ -33,5 +33,7 @@ elif [ "${MODE}" = "stop" ]; then
     stop
 elif [ "${MODE}" = "attach" ]; then
     attach
+elif [ "${MODE}" = "stach" ]; then
+    start && attach
 fi
 

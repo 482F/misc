@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+set -ue -o pipefail
+
+Z_DATE="$(date "+%Y-%m-%dT00:00:00")"
+FILTER_BRANCH_SQUELCH_WARNING=1 \
+  git filter-branch -f --env-filter \
+    "\
+      GIT_AUTHOR_DATE='${Z_DATE}';\
+      GIT_COMMITTER_DATE='${Z_DATE}';
+    "\
+    "${1:-HEAD}...HEAD"

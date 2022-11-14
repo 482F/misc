@@ -2,7 +2,9 @@
 
 set -ue -o pipefail
 
-Z_DATE="$(date "+%Y-%m-%dT00:00:00")"
+if [ "${Z_DATE:-}" = "" ]; then
+  Z_DATE="$(date "+%Y-%m-%dT00:00:00")"
+fi
 FILTER_BRANCH_SQUELCH_WARNING=1 \
   git filter-branch -f --env-filter \
     "\

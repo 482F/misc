@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+set -ue -o pipefail
+
+BRANCH="HEAD"
+
+if [ "" != "${2:-}" ]; then
+  BRANCH="${1:-}"
+  shift 1
+fi
+
+NUM="${1:-1}"
+
+git diff "${BRANCH}~${NUM}" "${BRANCH}~$((${NUM}-1))"

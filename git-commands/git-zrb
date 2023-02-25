@@ -4,6 +4,8 @@ set -ue -o pipefail
 
 if [ "${Z_DATE:-}" = "" ]; then
   Z_DATE="$(date "+%Y-%m-%dT00:00:00")"
+elif [ "${Z_DATE:-}" = "current" ]; then
+  Z_DATE="$(date "+%Y-%m-%dT%H:%M:%S")"
 fi
 FILTER_BRANCH_SQUELCH_WARNING=1 \
   git filter-branch -f --env-filter \

@@ -54,11 +54,9 @@ function _rgecho() {
   exit 1
 }
 function main(){
-  if [ "$(type rg 2> /dev/null)" = "" ]; then
-    _grepecho "${@}"
-  else
-    _rgecho "${@}"
-  fi
+  type rg > /dev/null 2>&1 \
+    && _rgecho "${@}" \
+    || _grepecho "${@}"
 }
 
 main "${@}"

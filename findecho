@@ -6,7 +6,11 @@
 set -ue -o pipefail
 
 function main(){
-  matches="$(find "${2:-.}" -type f | grep -iP "${1}")"
+  if [ "$(type fdfind 2> /dev/null)" = "" ]; then
+    matches="$(find "${2:-.}" -type f | grep -iP "${1}")"
+  else
+    matches="$(fdfind "${2:-.}" --type f | grep -iP "${1}")"
+  fi
   echo "${matches}" | grep -iP --color=always "${1}" | nl 1>&2
   echo -n "input target file line number: " 1>&2
   read number 2> /dev/null

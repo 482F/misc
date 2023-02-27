@@ -6,7 +6,11 @@
 set -ue -o pipefail
 
 function main(){
-  matches="$(grep -RiP "${1}" "${2:-.}")"
+  if [ "$(type rg 2> /dev/null)" = "" ]; then
+    matches="$(grep -RiP "${1}" "${2:-.}")"
+  else
+    matches="$(rg -i "${1}" "${2:-.}")"
+  fi
   echo "${matches}" | grep -iP --color=always "$1" | GREP_COLOR="1;36" grep -E --color=always "^[^ :]+" | nl 1>&2
   echo -n "input target file line number: " 1>&2
   read number 2> /dev/null

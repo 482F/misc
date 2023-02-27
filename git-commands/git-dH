@@ -11,4 +11,4 @@ fi
 
 NUM="${1:-1}"
 
-git diff "${BRANCH}~${NUM}" "${BRANCH}~$((${NUM}-1))"
+git dd "${BRANCH}~${NUM}" "${BRANCH}~$((${NUM}-1))"

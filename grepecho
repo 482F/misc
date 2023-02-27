@@ -5,12 +5,8 @@
 
 set -ue -o pipefail
 
-function main(){
-  if [ "$(type rg 2> /dev/null)" = "" ]; then
-    matches="$(grep -RiP "${1}" "${2:-.}")"
-  else
-    matches="$(rg -i "${1}" "${2:-.}")"
-  fi
+function _grepecho() {
+  matches="$(grep -RiP "${1}" "${2:-.}")"
   echo "${matches}" | grep -iP --color=always "$1" | GREP_COLOR="1;36" grep -E --color=always "^[^ :]+" | nl 1>&2
   echo -n "input target file line number: " 1>&2
   read number 2> /dev/null
@@ -22,6 +18,39 @@ function main(){
     exit $?
   fi
   exit 1
+}
+function _rgecho() {
+  # \x1B\[0m\x1B\[35m はファイル名に付く色のコード
+  script='
+    my $i = 1;
+    while (defined($_ = <>)) {
+      if ($_ =~ s/^(\x1B\[0m\x1B\[35m)/- ${i}:$1/g) {
+        $i++;
+      }
+    } continue {
+      print or die;
+    }'
+  # rg とかでやりたかったが、マッチごとに置換文字列をインクリメントする処理ができなさそうなので perl で
+  matches="$(rg -iUp "${1}" "${2:-.}" | perl -e "${script}")"
+  echo "${matches}" 1>&2
+  echo "" 1>&2
+  echo -n "input target file line number: " 1>&2
+  read number 2> /dev/null
+  if [ "${number}" = "" ]; then
+    exit 1
+  fi
+  if [ $? = 0 ]; then
+    echo "${matches}" | rg "^- ${number}:" | perl -pe "s/^- \d+:|\x1B\[\d+m//g"
+    exit $?
+  fi
+  exit 1
+}
+function main(){
+  if [ "$(type rg 2> /dev/null)" = "" ]; then
+    _grepecho "${@}"
+  else
+    _rgecho "${@}"
+  fi
 }
 
 main "${@}"

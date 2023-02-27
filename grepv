@@ -10,6 +10,9 @@ set -ue -o pipefail
 function main(){
   local TARGET_FILE
   TARGET_FILE="$(grepecho "${1:-}" "${2:-}")"
+  if [ "${TARGET_FILE}" = "" ]; then
+    exit 1
+  fi
   ${GREPV_EDITOR:-vim} "${TARGET_FILE}"
 }
 

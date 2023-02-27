@@ -31,7 +31,15 @@ function _rgecho() {
       print or die;
     }'
   # rg とかでやりたかったが、マッチごとに置換文字列をインクリメントする処理ができなさそうなので perl で
-  matches="$(rg -iUp "${1}" "${2:-.}" | perl -e "${script}")"
+  matches="$(
+    rg -iUp -M 120 --max-columns-preview "${1}" "${2:-.}" \
+    | perl -e "${script}" \
+    | perl -pe "s/(?<=^\x1B\[0m\x1B\[32m)(.+?:)\s+/\1 /g" \
+    | perl -pe "s/(?<=^\x1B\[0m\x1B\[32m)/     /g" \
+  )"
+  if echo "${matches}" | rg -U "^[\s\n]+$"; then
+    exit 1
+  fi
   echo "${matches}" 1>&2
   echo "" 1>&2
   echo -n "input target file line number: " 1>&2

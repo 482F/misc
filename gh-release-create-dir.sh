@@ -2,9 +2,9 @@
 
 set -ue -o pipefail
 
-TAG="${1}"
-TAR_NAME="${2}"
-TARGET_DIR="${3}"
+TAG="${1}" # 1.0.0
+TAR_NAME="${2}" # project-name.tar
+TARGET_DIR="${3}" # ./dist
 
 CURRENT_DIR="$(pwd)"
 

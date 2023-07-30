@@ -5,4 +5,4 @@ set -ue -o pipefail
 if [ "${Z_DATE:-}" = "" ]; then
   Z_DATE="$(date "+%Y-%m-%dT00:00:00")"
 fi
-GIT_AUTHOR_DATE=${Z_DATE} GIT_COMMITTER_DATE=${Z_DATE} git co "${@}"
+GIT_AUTHOR_DATE=${Z_DATE} GIT_COMMITTER_DATE=${Z_DATE} git co --date=${Z_DATE} "${@}"

@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+set -ue -o pipefail
+
+function main() {
+  local arg="${1:-}"
+  local histories="$(git --no-pager reflog | awk '$3 == "checkout:" && /moving from/ {print $8}' | uniq | nl -v 0)"
+  if [ "${arg}" = "" ]; then
+    echo "${histories}" | less -X
+  else
+    local branch="$(echo "${histories}" | sed -n "$((${arg#-}+1))p" | perl -pe 's/^\s+\d+\s//')"
+    git checkout "${branch}"
+  fi
+}
+
+main "${@}"

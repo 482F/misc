@@ -22,18 +22,26 @@ function stop() {
     tmux kill-session -t "${SESSION_NAME}"
 }
 
+function reload() {
+    stop || true; start
+}
+
 function attach() {
     TMUX="" tmux a -t "${SESSION_NAME}"
 }
 
+function stach() {
+    start && attach
+}
 
 if [ "${MODE}" = "start" ]; then
     start
 elif [ "${MODE}" = "stop" ]; then
     stop
+elif [ "${MODE}" = "reload" ]; then
+    reload
 elif [ "${MODE}" = "attach" -o "${MODE}" = "" ]; then
     attach
 elif [ "${MODE}" = "stach" ]; then
-    start && attach
+    stach
 fi
-

@@ -3,7 +3,8 @@
 set -ue -o pipefail
 
 MODE="${1:-}"
-SESSION_NAME="$(pwd)"
+RAW_SESSION_NAME="$(pwd)"
+SESSION_NAME="${RAW_SESSION_NAME//./_}"
 
 shift 1 || true
 

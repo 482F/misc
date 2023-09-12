@@ -2,6 +2,8 @@
 import { delay } from 'https://deno.land/std@0.161.0/async/mod.ts'
 import { Command } from 'https://deno.land/x/cliffy@v0.25.7/command/mod.ts'
 
+const dayMs = 1000 * 60 * 60 * 24
+
 function parseTime(ms: number) {
   const p = (num: number) => num.toString().padStart(2, '0')
   const h = p(Math.floor(ms / (60 * 60 * 1000)))
@@ -12,7 +14,7 @@ function parseTime(ms: number) {
 
 async function main(_: unknown, time: string) {
   const rawTimes = time.match(
-    /((?<y>\d{4})\/(?<mo>\d{2})\/(?<d>\d{2}) )?(?<h>\d{2}):(?<mi>\d{2})(.(?<s>\d{2}))?/,
+    /((?<y>\d{4})\/(?<mo>\d{2})\/(?<d>\d{2}) )?(?<h>\d{2}):(?<mi>\d{2})/,
   )?.groups
   if (!rawTimes) {
     throw new Error('引数の形式が不正です')
@@ -31,17 +33,23 @@ async function main(_: unknown, time: string) {
   target.setDate(times.d ?? target.getDate())
   target.setHours(times.h ?? 0)
   target.setMinutes(times.mi ?? 0)
-  target.setSeconds(times.s ?? 0)
+  target.setSeconds(0)
   target.setMilliseconds(0)
 
-  const targetTime = target.getTime()
+  const targetTime = (() => {
+    const time = target.getTime()
+    if (time < now.getTime() && times.d === null) {
+      return time + dayMs
+    } else {
+      return time
+    }
+  })()
   const diff = targetTime - now.getTime()
 
   if (diff < 0) {
     throw new Error('過去の時間が指定されています')
   }
 
-  console.log('')
   const print = () => {
     const rest = parseTime(targetTime - Date.now())
     console.log('\x1b[1A\x1b[K' + rest)
@@ -50,7 +58,13 @@ async function main(_: unknown, time: string) {
   await delay(diff % 1000)
   print()
   const intervalId = setInterval(print, 1000)
-  await delay(Math.floor(diff / 1000) * 1000)
+  while (true) {
+    const cdiff = targetTime - Date.now()
+    if (cdiff < 1000) {
+      break
+    }
+    await delay(cdiff % 60000)
+  }
   clearInterval(intervalId)
 }
 

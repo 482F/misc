@@ -93,7 +93,14 @@ const [newArgs, piped, swpPromise] =
     }
   })().then((
     [newArgs, ...rest],
-  ) => [newArgs.filter((arg) => arg !== '--wait'), ...rest] as const)
+  ) =>
+    [
+      newArgs
+        .filter((arg) => arg !== '--wait')
+        .map((arg) => arg[0] === '-' ? arg : resolve(arg)),
+      ...rest,
+    ] as const
+  )
 
 nvim(newArgs, piped)
 await swpPromise

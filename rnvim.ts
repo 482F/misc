@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --allow-run=tmux,nvim --allow-env=TMUX,HOME --allow-read --ext ts
+#!/usr/bin/env -S deno run --no-config --allow-run=tmux,nvim --allow-env=TMUX,HOME --allow-read --ext ts
 
 import { resolve } from 'https://deno.land/std@0.200.0/path/mod.ts'
 

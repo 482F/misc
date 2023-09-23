@@ -64,9 +64,11 @@ async function waitSwpFileRemove(paths: string[]) {
 
 const id = await (() => {
   if (Deno.env.get('TMUX')) {
-    return run('tmux', ['display-message', '-p', '#S-#{window_id}']).then((r) =>
-      r.replaceAll('%', '')
-    )
+    return run('tmux', [
+      'display-message',
+      '-p',
+      '#S-#{start_time}-#{window_id}',
+    ]).then((r) => r.replaceAll('%', ''))
   } else {
     return 'main'
   }

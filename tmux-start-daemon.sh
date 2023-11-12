@@ -12,10 +12,8 @@ COMMANDS="${@}"
 
 
 function start() {
-    if tmux ls 2>&1 | grep "${SESSION_NAME}:"; then
-        attach
-    else
-        tmux new-session -s "${SESSION_NAME}" -d "${COMMANDS}; read -p 'press Enter...'"
+    if ! tmux ls 2>&1 | grep -q "${SESSION_NAME}:"; then
+        tmux -2 new-session -s "${SESSION_NAME}" -d "${COMMANDS}; read -p 'press Enter...'"
     fi
 }
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --no-config --allow-run=tmux,nvim --allow-env=TMUX,HOME --allow-read --ext ts
+#!/usr/bin/env -S deno run --no-config --allow-run=tmux,nvim --allow-env=TMUX,HOME --allow-read --allow-write --ext ts
 
 import { resolve } from 'https://deno.land/std@0.200.0/path/mod.ts'
 
@@ -76,6 +76,14 @@ const id = await (() => {
 
 const pipePath = Deno.env.get('HOME') + '/.cache/nvim/' + id + '.pipe'
 
+const extraArg = {
+  forceListen: '--force-listen',
+}
+
+if (args.includes(extraArg.forceListen)) {
+  await Deno.remove(pipePath).catch(() => {})
+}
+
 const [newArgs, piped, swpPromise] =
   await (async (): Promise<[string[], boolean, Promise<void> | null]> => {
     if (await isExists(pipePath)) {
@@ -95,14 +103,16 @@ const [newArgs, piped, swpPromise] =
     }
   })().then((
     [newArgs, ...rest],
-  ) =>
-    [
+  ) => {
+    const extraArgSet = new Set(Object.values(extraArg))
+    return [
       newArgs
         .filter((arg) => arg !== '--wait')
+        .filter((arg) => !extraArgSet.has(arg))
         .map((arg) => arg[0] === '-' ? arg : resolve(arg)),
       ...rest,
     ] as const
-  )
+  })
 
 nvim(newArgs, piped)
 await swpPromise

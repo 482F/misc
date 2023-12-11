@@ -2,6 +2,7 @@
 
 import {
   dirname,
+  join,
   resolve,
   toFileUrl,
 } from 'https://deno.land/std@0.205.0/path/mod.ts'
@@ -13,18 +14,30 @@ import * as esbuild from 'https://deno.land/x/esbuild@v0.19.4/wasm.js'
 
 import { denoPlugins } from 'https://deno.land/x/esbuild_deno_loader@0.8.2/mod.ts'
 
+async function closestFilePath(
+  dir: string,
+  searcher: (entry: Deno.DirEntry) => Promise<boolean> | boolean,
+) {
+  let resolvedDir = resolve(dir)
+  while (resolvedDir !== '/') {
+    for await (const entry of Deno.readDir(resolvedDir)) {
+      if (entry.isFile && await searcher(entry)) {
+        return join(resolvedDir, entry.name)
+      }
+    }
+    resolvedDir = dirname(resolvedDir)
+  }
+}
+
 async function outputBundled(filePath: string, destPath: string) {
   const spinner = Spinner.getInstance()
 
   const spinnerStartPromise = spinner.start('bundling')
 
-  const configPath = await (async () => {
-    for await (const entry of Deno.readDir(dirname(filePath))) {
-      if (entry.isFile && entry.name.match(/deno\.jsonc?/)) {
-        return resolve(entry.name)
-      }
-    }
-  })()
+  const configPath = await closestFilePath(
+    dirname(filePath),
+    (entry) => Boolean(entry.name.match(/deno\.jsonc?/)),
+  ).then((path) => path ? resolve(path) : path)
 
   const result = await esbuild.build({
     plugins: [...denoPlugins({

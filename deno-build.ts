@@ -29,7 +29,10 @@ async function closestFilePath(
   }
 }
 
-async function outputBundled(filePath: string, destPath: string) {
+async function outputBundled(filePath: string, destPath: string, option: {
+  minify: boolean
+  inlineSourcemap: boolean
+}) {
   const spinner = Spinner.getInstance()
 
   const spinnerStartPromise = spinner.start('bundling')
@@ -51,7 +54,8 @@ async function outputBundled(filePath: string, destPath: string) {
     bundle: true,
     metafile: true,
     format: 'esm',
-    sourcemap: 'inline',
+    sourcemap: option.inlineSourcemap ? 'inline' : undefined,
+    minify: option.minify,
   })
     .then((r) => ({
       inputs: Object.keys(r.metafile.inputs),
@@ -136,13 +140,20 @@ function resolveRelativeFiles(
 }
 
 async function main(
-  { watch = false }: { watch?: boolean | undefined },
+  { watch = false, inlineSourcemap = true, minify = true }: {
+    watch?: boolean
+    inlineSourcemap?: boolean
+    minify?: boolean
+  },
   filePath: string,
   destPath?: string,
 ) {
   destPath ??= filePath + '.bundled.js'
 
-  const inputs = await outputBundled(filePath, destPath)
+  const inputs = await outputBundled(filePath, destPath, {
+    inlineSourcemap,
+    minify,
+  })
 
   const [watcher, updater] = createWatcherAndUpdater()
 
@@ -157,7 +168,10 @@ async function main(
       continue
     }
 
-    const inputs = await outputBundled(filePath, destPath)
+    const inputs = await outputBundled(filePath, destPath, {
+      inlineSourcemap,
+      minify,
+    })
     relativeFilePaths = resolveRelativeFiles(
       inputs,
       relativeFilePaths,
@@ -170,5 +184,7 @@ new Command()
   .name('deno-build')
   .arguments('<target-file:string> [destination:string]')
   .option('--watch', 'watch file modify')
+  .option('--inline-sourcemap', 'generate inline sourcemap')
+  .option('--minify', 'minify')
   .action(main)
   .parse(Deno.args)

@@ -29,6 +29,37 @@ async function closestFilePath(
   }
 }
 
+export async function build(
+  filePath: string,
+  configPath: string | undefined,
+  option: {
+    minify: boolean
+    sourcemap: boolean | 'linked' | 'inline' | 'external' | 'both'
+  },
+) {
+  return await esbuild.build({
+    plugins: [...denoPlugins({
+      nodeModulesDir: true,
+      configPath: configPath,
+    })],
+    entryPoints: [toFileUrl(resolve(filePath)).toString()],
+    jsx: 'transform',
+    jsxFactory: 'React.createElement',
+    jsxImportSource: 'react',
+    bundle: true,
+    metafile: true,
+    format: 'esm',
+    sourcemap: option.sourcemap,
+    minify: option.minify,
+  })
+    .then((r) => ({
+      inputs: Object.keys(r.metafile.inputs),
+      outputFiles: r.outputFiles,
+      error: null,
+    }))
+    .catch((e) => ({ outputFiles: null, inputs: null, error: e }))
+}
+
 async function outputBundled(filePath: string, destPath: string, option: {
   minify: boolean
   inlineSourcemap: boolean
@@ -42,38 +73,22 @@ async function outputBundled(filePath: string, destPath: string, option: {
     (entry) => Boolean(entry.name.match(/deno\.jsonc?/)),
   ).then((path) => path ? resolve(path) : path)
 
-  const result = await esbuild.build({
-    plugins: [...denoPlugins({
-      nodeModulesDir: true,
-      configPath: configPath,
-    })],
-    entryPoints: [toFileUrl(resolve(filePath)).toString()],
-    jsx: 'transform',
-    jsxFactory: 'React.createElement',
-    jsxImportSource: 'react',
-    bundle: true,
-    metafile: true,
-    format: 'esm',
-    sourcemap: option.inlineSourcemap ? 'inline' : undefined,
+  const result = await build(filePath, configPath, {
     minify: option.minify,
+    sourcemap: option.inlineSourcemap ? 'inline' : false,
   })
-    .then((r) => ({
-      inputs: Object.keys(r.metafile.inputs),
-      contents: r.outputFiles?.[0]?.contents,
-      error: null,
-    }))
-    .catch((e) => ({ contents: null, inputs: null, error: e }))
 
   esbuild.stop()
 
   await spinnerStartPromise
 
-  if (result?.contents) {
+  const contents = result?.outputFiles?.[0]?.contents
+  if (contents) {
     await spinner.succeed(
       `[${format(new Date(), 'HH:mm:ss.SSS')}] bundled '${destPath}'`,
     )
     console.log('')
-    await Deno.writeFile(destPath, result.contents)
+    await Deno.writeFile(destPath, contents)
   } else {
     await spinner.fail(
       `[${format(new Date(), 'HH:mm:ss.SSS')}] bundle failed`,
@@ -139,52 +154,50 @@ function resolveRelativeFiles(
     .map((path) => '/' + path)
 }
 
-async function main(
-  { watch = false, inlineSourcemap = true, minify = true }: {
-    watch?: boolean
-    inlineSourcemap?: boolean
-    minify?: boolean
-  },
-  filePath: string,
-  destPath?: string,
-) {
-  destPath ??= filePath + '.bundled.js'
+if (import.meta.main) {
+  new Command()
+    .name('deno-build')
+    .arguments('<target-file:string> [destination:string]')
+    .option('--watch', 'watch file modify')
+    .option('--inline-sourcemap', 'generate inline sourcemap')
+    .option('--minify', 'minify')
+    .action(
+      async function main(
+        { watch = false, inlineSourcemap = true, minify = true },
+        filePath: string,
+        destPath?: string,
+      ) {
+        destPath ??= filePath + '.bundled.js'
 
-  const inputs = await outputBundled(filePath, destPath, {
-    inlineSourcemap,
-    minify,
-  })
+        const inputs = await outputBundled(filePath, destPath, {
+          inlineSourcemap,
+          minify,
+        })
 
-  const [watcher, updater] = createWatcherAndUpdater()
+        const [watcher, updater] = createWatcherAndUpdater()
 
-  if (!inputs || !watch) {
-    Deno.exit(inputs ? 0 : 1)
-  }
+        if (!inputs || !watch) {
+          Deno.exit(inputs ? 0 : 1)
+        }
 
-  let relativeFilePaths = resolveRelativeFiles(inputs, [])
-  updater(relativeFilePaths)
-  for await (const event of watcher()) {
-    if (!['create', 'modify', 'remove'].includes(event.kind)) {
-      continue
-    }
+        let relativeFilePaths = resolveRelativeFiles(inputs, [])
+        updater(relativeFilePaths)
+        for await (const event of watcher()) {
+          if (!['create', 'modify', 'remove'].includes(event.kind)) {
+            continue
+          }
 
-    const inputs = await outputBundled(filePath, destPath, {
-      inlineSourcemap,
-      minify,
-    })
-    relativeFilePaths = resolveRelativeFiles(
-      inputs,
-      relativeFilePaths,
+          const inputs = await outputBundled(filePath, destPath, {
+            inlineSourcemap,
+            minify,
+          })
+          relativeFilePaths = resolveRelativeFiles(
+            inputs,
+            relativeFilePaths,
+          )
+          updater(relativeFilePaths)
+        }
+      },
     )
-    updater(relativeFilePaths)
-  }
+    .parse(Deno.args)
 }
-
-new Command()
-  .name('deno-build')
-  .arguments('<target-file:string> [destination:string]')
-  .option('--watch', 'watch file modify')
-  .option('--inline-sourcemap', 'generate inline sourcemap')
-  .option('--minify', 'minify')
-  .action(main)
-  .parse(Deno.args)

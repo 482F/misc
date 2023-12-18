@@ -9,6 +9,10 @@ import {
 import { Command } from 'https://deno.land/x/cliffy@v0.25.7/command/mod.ts'
 import Spinner from 'https://deno.land/x/cli_spinners@v0.0.2/mod.ts'
 import { format } from 'https://deno.land/std@0.205.0/datetime/format.ts'
+import {
+  keypress,
+  KeyPressEvent,
+} from 'https://deno.land/x/cliffy@v1.0.0-rc.2/keypress/mod.ts'
 
 import * as esbuild from 'https://deno.land/x/esbuild@v0.19.4/wasm.js'
 
@@ -29,7 +33,7 @@ async function closestFilePath(
   }
 }
 
-export async function build(
+export async function getRebuilder(
   filePath: string,
   configPath: string | undefined,
   option: {
@@ -37,7 +41,7 @@ export async function build(
     sourcemap: boolean | 'linked' | 'inline' | 'external' | 'both'
   },
 ) {
-  return await esbuild.build({
+  const context = await esbuild.context({
     plugins: [...denoPlugins({
       nodeModulesDir: true,
       configPath: configPath,
@@ -52,15 +56,18 @@ export async function build(
     sourcemap: option.sourcemap,
     minify: option.minify,
   })
-    .then((r) => ({
-      inputs: Object.keys(r.metafile.inputs),
-      outputFiles: r.outputFiles,
-      error: null,
-    }))
-    .catch((e) => ({ outputFiles: null, inputs: null, error: e }))
+  return [async function rebuild() {
+    return await context.rebuild()
+      .then((r) => ({
+        inputs: Object.keys(r.metafile.inputs),
+        outputFiles: r.outputFiles,
+        error: null,
+      }))
+      .catch((e) => ({ outputFiles: null, inputs: null, error: e }))
+  }, () => context.dispose()] as const
 }
 
-async function outputBundled(filePath: string, destPath: string, option: {
+async function getWriter(filePath: string, destPath: string, option: {
   minify: boolean
   inlineSourcemap: boolean
 }) {
@@ -73,31 +80,35 @@ async function outputBundled(filePath: string, destPath: string, option: {
     (entry) => Boolean(entry.name.match(/deno\.jsonc?/)),
   ).then((path) => path ? resolve(path) : path)
 
-  const result = await build(filePath, configPath, {
+  const [rebuild, stop] = await getRebuilder(filePath, configPath, {
     minify: option.minify,
     sourcemap: option.inlineSourcemap ? 'inline' : false,
   })
 
-  esbuild.stop()
+  return [
+    async function write() {
+      await spinnerStartPromise
 
-  await spinnerStartPromise
+      const result = await rebuild()
+      const contents = result?.outputFiles?.[0]?.contents
+      if (contents) {
+        await spinner.succeed(
+          `[${format(new Date(), 'HH:mm:ss.SSS')}] bundled '${destPath}'`,
+        )
+        console.log('')
+        await Deno.writeFile(destPath, contents)
+      } else {
+        await spinner.fail(
+          `[${format(new Date(), 'HH:mm:ss.SSS')}] bundle failed`,
+        )
+        console.log('')
+        console.error(result?.error)
+      }
 
-  const contents = result?.outputFiles?.[0]?.contents
-  if (contents) {
-    await spinner.succeed(
-      `[${format(new Date(), 'HH:mm:ss.SSS')}] bundled '${destPath}'`,
-    )
-    console.log('')
-    await Deno.writeFile(destPath, contents)
-  } else {
-    await spinner.fail(
-      `[${format(new Date(), 'HH:mm:ss.SSS')}] bundle failed`,
-    )
-    console.log('')
-    console.error(result?.error)
-  }
-
-  return result.inputs
+      return result.inputs
+    },
+    () => stop(),
+  ] as const
 }
 
 function createWatcherAndUpdater() {
@@ -154,6 +165,17 @@ function resolveRelativeFiles(
     .map((path) => '/' + path)
 }
 
+async function waitCtrlC() {
+  return await new Promise((resolve) =>
+    keypress().addEventListener('keydown', (event: KeyPressEvent) => {
+      if (event.ctrlKey && event.key === 'c') {
+        resolve(undefined)
+        keypress().dispose()
+      }
+    })
+  )
+}
+
 if (import.meta.main) {
   new Command()
     .name('deno-build')
@@ -169,9 +191,16 @@ if (import.meta.main) {
       ) {
         destPath ??= filePath + '.bundled.js'
 
-        const inputs = await outputBundled(filePath, destPath, {
+        const [write, stop] = await getWriter(filePath, destPath, {
           inlineSourcemap,
           minify,
+        })
+
+        const inputs = await write()
+
+        waitCtrlC().then(async () => {
+          await stop()
+          Deno.exit(0)
         })
 
         const [watcher, updater] = createWatcherAndUpdater()
@@ -187,16 +216,14 @@ if (import.meta.main) {
             continue
           }
 
-          const inputs = await outputBundled(filePath, destPath, {
-            inlineSourcemap,
-            minify,
-          })
+          const inputs = await write()
           relativeFilePaths = resolveRelativeFiles(
             inputs,
             relativeFilePaths,
           )
           updater(relativeFilePaths)
         }
+        await stop()
       },
     )
     .parse(Deno.args)

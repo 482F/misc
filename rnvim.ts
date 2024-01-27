@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --no-config --allow-run=tmux,nvim --allow-env=TMUX,HOME --allow-read --allow-write --ext ts
+#!/usr/bin/env -S deno run --no-config --allow-run=tmux,nvim --allow-env=TMUX_PANE,HOME --allow-read --allow-write --ext ts
 
 import { resolve } from 'https://deno.land/std@0.200.0/path/mod.ts'
 
@@ -63,17 +63,26 @@ async function waitSwpFileRemove(paths: string[]) {
   return
 }
 
-const id = await (() => {
-  if (Deno.env.get('TMUX')) {
-    return run('tmux', [
-      'display-message',
-      '-p',
-      '#S-#{start_time}-#{window_id}',
-    ]).then((r) => r.replaceAll('%', ''))
-  } else {
-    return 'main'
+const id = await (async () => {
+  const currentPaneId = Deno.env.get('TMUX_PANE')?.replace('%', '')
+  if (currentPaneId) {
+    const allIds = await run('tmux', [
+      'list-panes',
+      '-s',
+      '-F',
+      '#{pane_id},#S-#{start_time}-#{window_id}',
+    ])
+      .then((r) =>
+        r.replaceAll('%', '').split('\n').map((line) => line.split(','))
+      )
+    return allIds.find(([paneId]) => paneId === `${currentPaneId}`)?.[1]
+    // return run('tmux', [
+    //   'display-message',
+    //   '-p',
+    //   '#S-#{start_time}-#{window_id}',
+    // ]).then((r) => r.replaceAll('%', ''))
   }
-})()
+})() ?? 'main'
 
 const pipePath = Deno.env.get('HOME') + '/.cache/nvim/' + id + '.pipe'
 

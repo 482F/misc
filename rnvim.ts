@@ -57,9 +57,10 @@ async function waitSwpFileRemove(paths: string[]) {
     }
     event.paths.forEach((path) => swpPathSet.delete(path))
     if (swpPathSet.size <= 0) {
-      return
+      watcher.close()
     }
   }
+  return
 }
 
 const id = await (() => {

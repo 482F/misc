@@ -181,8 +181,8 @@ if (import.meta.main) {
     .name('deno-build')
     .arguments('<target-file:string> [destination:string]')
     .option('--watch', 'watch file modify')
-    .option('--inline-sourcemap', 'generate inline sourcemap')
-    .option('--minify', 'minify')
+    .option('--no-inline-sourcemap', 'generate inline sourcemap')
+    .option('--no-minify', 'minify')
     .action(
       async function main(
         { watch = false, inlineSourcemap = true, minify = true },

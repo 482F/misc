@@ -1,24 +1,32 @@
-#!/usr/bin/env -S deno run --no-config --allow-run=tmux,nvim --allow-env=TMUX_PANE,HOME --allow-read --allow-write --ext ts
+#!/usr/bin/env -S deno run --no-config --allow-run=tmux,nvim,nvim-qt,powershell.exe --allow-env=TMUX_PANE,HOME,LOCALAPPDATA,FROM_WIN --allow-read --allow-write --ext ts
 
-import { resolve } from 'https://deno.land/std@0.200.0/path/mod.ts'
+if (Deno.env.get('FROM_WIN') === 'true' && Deno.build.os !== 'windows') {
+  await new Deno.Command('powershell.exe', { args: ['rnvim', ...Deno.args] })
+    .spawn().status
+  Deno.exit(0)
+}
 
-function nvim(args: string[], piped: boolean) {
+import { join, resolve } from 'https://deno.land/std@0.200.0/path/mod.ts'
+
+function nvim(exe: string, args: string[], piped: boolean) {
   const std = piped ? 'piped' : 'inherit'
-  new Deno.Command(
-    'nvim',
+  return new Deno.Command(
+    exe,
     {
       args,
       stdin: std,
       stdout: std,
       stderr: std,
     },
-  ).spawn()
+  )
+    .spawn()
+    .status
 }
 
 const args = [...Deno.args]
 
 if (['--server', '--listen'].some((a) => args.includes(a))) {
-  nvim(args, true)
+  nvim('nvim', args, true)
   Deno.exit(0)
 }
 
@@ -41,14 +49,22 @@ async function isExists(path: string) {
   }
 }
 
+const nvimDirPath = (() => {
+  if (Deno.build.os === 'windows') {
+    return join(Deno.env.get('LOCALAPPDATA') ?? '', 'nvim-data')
+  } else {
+    return join(Deno.env.get('HOME') ?? '', '.local', 'state', 'nvim')
+  }
+})()
+
 async function waitSwpFileRemove(paths: string[]) {
-  const swapDirPath = Deno.env.get('HOME') + '/.local/state/nvim/swap/'
+  const swapDirPath = join(nvimDirPath, 'swap')
   const watcher = Deno.watchFs(swapDirPath)
   const swpPathSet = new Set(
     paths
       .map((path) => resolve(path))
-      .map((path) => path.replaceAll(/\//g, '%')) // TODO: windows
-      .map((path) => swapDirPath + path + '.swp'),
+      .map((path) => path.replaceAll(/[\/\\:]/g, '%'))
+      .map((path) => join(swapDirPath, path + '.swp')),
   )
 
   for await (const event of watcher) {
@@ -76,15 +92,12 @@ const id = await (async () => {
         r.replaceAll('%', '').split('\n').map((line) => line.split(','))
       )
     return allIds.find(([paneId]) => paneId === `${currentPaneId}`)?.[1]
-    // return run('tmux', [
-    //   'display-message',
-    //   '-p',
-    //   '#S-#{start_time}-#{window_id}',
-    // ]).then((r) => r.replaceAll('%', ''))
   }
 })() ?? 'main'
 
-const pipePath = Deno.env.get('HOME') + '/.cache/nvim/' + id + '.pipe'
+await Deno.mkdir(join(nvimDirPath, 'rnvim'), { recursive: true })
+const pipePath = join(nvimDirPath, 'rnvim', id + '.pipe')
+const address = Deno.build.os === 'windows' ? 'localhost:14590' : pipePath
 
 const extraArg = {
   forceListen: '--force-listen',
@@ -94,22 +107,32 @@ if (args.includes(extraArg.forceListen)) {
   await Deno.remove(pipePath).catch(() => {})
 }
 
+const serverExists = await isExists(pipePath)
+
+if (Deno.build.os === 'windows') {
+  await Deno.writeTextFile(pipePath, 'a')
+}
+
+function isFileArg(arg: string) {
+  return arg[0] !== '-' && arg !== address
+}
+
 const [newArgs, piped, swpPromise] =
   await (async (): Promise<[string[], boolean, Promise<void> | null]> => {
-    if (await isExists(pipePath)) {
-      const newArgs = ['--server', pipePath, '--remote-tab', ...args]
+    if (serverExists) {
+      const newArgs = ['--server', address, '--remote-tab', ...args]
       const waitIndex = newArgs.indexOf('--wait')
       if (waitIndex !== -1) {
         return [
           newArgs,
           true,
-          waitSwpFileRemove(args.filter((arg) => arg[0] !== '-')),
+          waitSwpFileRemove(args.filter(isFileArg)),
         ]
       } else {
         return [newArgs, true, null]
       }
     } else {
-      return [['--listen', pipePath, ...args], false, null]
+      return [['--listen', address, ...args], false, null]
     }
   })().then((
     [newArgs, ...rest],
@@ -119,10 +142,20 @@ const [newArgs, piped, swpPromise] =
       newArgs
         .filter((arg) => arg !== '--wait')
         .filter((arg) => !extraArgSet.has(arg))
-        .map((arg) => arg[0] === '-' ? arg : resolve(arg)),
+        .map((arg) => isFileArg(arg) ? resolve(arg) : arg),
       ...rest,
     ] as const
   })
 
-nvim(newArgs, piped)
+let exe = 'nvim'
+if (!serverExists && Deno.build.os === 'windows') {
+  exe = 'nvim-qt'
+  newArgs.splice(0, 0, '--')
+}
+const nvimPromise = nvim(exe, newArgs, piped)
 await swpPromise
+await nvimPromise
+
+if (!serverExists) {
+  await Deno.remove(pipePath).catch(() => {})
+}

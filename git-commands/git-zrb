@@ -1,16 +1,70 @@
 #!/usr/bin/env bash
 
+# Z_DATE=zcurrent Z_MAILRULES="b1@example.com > a1@example.com; b2@example.com > a2@example.com" git zrb
+
 set -ue -o pipefail
 
-if [ "${Z_DATE:-}" = "" ]; then
-  Z_DATE="$(date "+%Y-%m-%dT00:00:00")"
-elif [ "${Z_DATE:-}" = "current" ]; then
-  Z_DATE="$(date "+%Y-%m-%dT%H:%M:%S")"
-fi
-FILTER_BRANCH_SQUELCH_WARNING=1 \
-  git filter-branch -f --env-filter \
-    "\
-      GIT_AUTHOR_DATE='${Z_DATE}';\
-      GIT_COMMITTER_DATE='${Z_DATE}';
-    "\
-    "${1:-HEAD}...HEAD"
+function log() {
+  git log --date=iso-local --format=format:%H:a%ad:c%cd "${@}"
+}
+
+function zrb() {
+  if [[ "${Z_DATE:-}" = "zcurrent" ]]; then
+    Z_DATE="$(date "+%Y-%m-%dT00:00:00")"
+  elif [[ "${Z_DATE:-}" = "current" ]]; then
+    Z_DATE="$(date "+%Y-%m-%dT%H:%M:%S")"
+  fi
+  local first_hash="${1:-}"
+  local last_hash="HEAD"
+
+  if [[ "${first_hash}" = "" ]]; then
+    local last_nz="$(log | grep -m 1 -Pv "c\d{4}-\d\d-\d\d 00:00:00")"
+    if [[ "${last_nz}" = "$(git rev-list --max-parents=0 HEAD)" ]]; then
+      echo there is not any non-zero commit
+      exit 1
+    fi
+    local authordate="$(echo "${last_nz}" | grep -Po "(?<=a)\d{4}-\d\d-\d\d")"
+    local hashes="$(log | grep "a${authordate}" | grep -Pv "c\d{4}-\d\d-\d\d 00:00:00" | grep -Po "^[^:]+")"
+
+    last_hash="$(echo "${hashes}" | head -n 1 || true)"
+    first_hash="$(echo "${hashes}" | tail -n 1)~1"
+  fi
+
+  local filter_target=""
+  local rev_target=""
+  if [[ "${first_hash}" = "ROOT" ]]; then
+    filter_target=""
+    rev_target="HEAD"
+  else
+    filter_target="${first_hash}...HEAD"
+    rev_target="${first_hash}..${last_hash}"
+  fi
+
+  local command="$(cat << EOF
+    if git rev-list "${rev_target}" | grep "\${GIT_COMMIT}"; then
+      IZ_DATE='${Z_DATE:-}'
+      if [ "\${IZ_DATE}" = "" ]; then
+        IZ_DATE="\$(date -d "\$(echo "\${GIT_AUTHOR_DATE}" | grep -Po "@\d+")" "+%Y-%m-%dT00:00:00")"
+      fi
+      GIT_AUTHOR_DATE="\${IZ_DATE}"
+      GIT_COMMITTER_DATE="\${IZ_DATE}"
+
+      for rule in \$(echo "${Z_MAILRULES:-}" | grep -Po "[^;]+" | sed -e "s/ //g"); do
+        target="\$(echo "\${rule}" | grep -Po "^[^>]+")"
+        dest="\$(echo "\${rule}" | grep -Po "[^>]+$")"
+        if [ "\${GIT_AUTHOR_EMAIL}" = "\${target}" ]; then
+          GIT_AUTHOR_EMAIL="\${dest}"
+        fi
+        if [ "\${GIT_COMMITTER_EMAIL}" = "\${target}" ]; then
+          GIT_COMMITTER_EMAIL="\${dest}"
+        fi
+      done
+    fi
+EOF
+  )"
+
+  FILTER_BRANCH_SQUELCH_WARNING=1 \
+    git filter-branch -f --env-filter "${command}" ${filter_target}
+}
+
+zrb "${@}"

@@ -23,6 +23,10 @@ function nvim(exe: string, args: string[], piped: boolean) {
     .status
 }
 
+function isFileArg(arg: string) {
+  return arg[0] !== '-' && arg !== address
+}
+
 const args = [...Deno.args]
 
 if (['--server', '--listen'].some((a) => args.includes(a))) {
@@ -99,11 +103,27 @@ await Deno.mkdir(join(nvimDirPath, 'rnvim'), { recursive: true })
 const pipePath = join(nvimDirPath, 'rnvim', id + '.pipe')
 const address = Deno.build.os === 'windows' ? 'localhost:14590' : pipePath
 
+const resolvedArgs = args.map((arg) => {
+  if (!isFileArg(arg)) {
+    return arg
+  }
+
+  if (Deno.build.os !== 'windows' || !arg.includes('/')) {
+    return resolve(arg)
+  }
+
+  return resolve(
+    arg
+      .replace(/\/mnt\/(.)/, (_, drive) => drive.toUpperCase() + ':')
+      .replaceAll(/\//g, '\\'),
+  )
+})
+
 const extraArg = {
   forceListen: '--force-listen',
 }
 
-if (args.includes(extraArg.forceListen)) {
+if (resolvedArgs.includes(extraArg.forceListen)) {
   await Deno.remove(pipePath).catch(() => {})
 }
 
@@ -113,26 +133,22 @@ if (Deno.build.os === 'windows') {
   await Deno.writeTextFile(pipePath, 'a')
 }
 
-function isFileArg(arg: string) {
-  return arg[0] !== '-' && arg !== address
-}
-
 const [newArgs, piped, swpPromise] =
   await (async (): Promise<[string[], boolean, Promise<void> | null]> => {
     if (serverExists) {
-      const newArgs = ['--server', address, '--remote-tab', ...args]
+      const newArgs = ['--server', address, '--remote-tab', ...resolvedArgs]
       const waitIndex = newArgs.indexOf('--wait')
       if (waitIndex !== -1) {
         return [
           newArgs,
           true,
-          waitSwpFileRemove(args.filter(isFileArg)),
+          waitSwpFileRemove(resolvedArgs.filter(isFileArg)),
         ]
       } else {
         return [newArgs, true, null]
       }
     } else {
-      return [['--listen', address, ...args], false, null]
+      return [['--listen', address, ...resolvedArgs], false, null]
     }
   })().then((
     [newArgs, ...rest],

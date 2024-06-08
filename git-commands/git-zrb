@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Z_DATE=zcurrent Z_MAILRULES="b1@example.com > a1@example.com; b2@example.com > a2@example.com" git zrb
+# Z_DELTA=-1 Z_DATE=zcurrent Z_MAILRULES="b1@example.com > a1@example.com; b2@example.com > a2@example.com" git zrb
 
 set -ue -o pipefail
 
@@ -46,6 +46,7 @@ function zrb() {
       if [ "\${IZ_DATE}" = "" ]; then
         IZ_DATE="\$(date -d "\$(echo "\${GIT_AUTHOR_DATE}" | grep -Po "@\d+")" "+%Y-%m-%dT00:00:00")"
       fi
+      IZ_DATE="\$(date -d "\$(date -d "\${IZ_DATE}") + ${Z_DELTA:-0} days" "+%Y-%m-%dT%H:%M:%S")"
       GIT_AUTHOR_DATE="\${IZ_DATE}"
       GIT_COMMITTER_DATE="\${IZ_DATE}"
 

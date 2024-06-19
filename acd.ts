@@ -50,9 +50,12 @@ const port = Number.isNaN(envPort) ? defaultPort : envPort
 
 const sender = messenger.createSender(async (_type, rawMessage) => {
   return await fetch(`http://${hostname}:${port}`, {
+    signal: AbortSignal.timeout(300),
     method: 'POST',
     body: rawMessage,
-  }).then((r) => r.text())
+  })
+    .then((r) => r.text())
+    .then(resolve)
 })
 
 const serverJson = await sender('all', {})

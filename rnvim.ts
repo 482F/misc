@@ -6,6 +6,7 @@ if (Deno.env.get('FROM_WIN') === 'true' && Deno.build.os !== 'windows') {
   Deno.exit(0)
 }
 
+import { delay } from 'https://deno.land/std@0.178.0/async/mod.ts'
 import { join, resolve } from 'https://deno.land/std@0.200.0/path/mod.ts'
 
 function nvim(exe: string, args: string[], piped: boolean) {
@@ -75,7 +76,17 @@ async function waitSwpFileRemove(paths: string[]) {
     if (event.kind !== 'remove') {
       continue
     }
-    event.paths.forEach((path) => swpPathSet.delete(path))
+
+    await delay(100)
+    await Promise.all(
+      event.paths.map(async (path) => [path, await isExists(path)] as const),
+    )
+      .then(
+        (pathsAndIsExists) =>
+          pathsAndIsExists
+            .filter(([, isExists]) => !isExists)
+            .forEach(([path]) => swpPathSet.delete(path)),
+      )
     if (swpPathSet.size <= 0) {
       watcher.close()
     }

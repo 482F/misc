@@ -44,7 +44,7 @@ async function sshRunDaemons(sshProfileName: string, commands: string[]) {
     .join('\n')
   const { code, stdout, stderr } = await sshRun(
     sshProfileName,
-    formattedCommands
+    formattedCommands,
   )
 
   if (code !== 0) {
@@ -64,7 +64,7 @@ async function sshRunDaemons(sshProfileName: string, commands: string[]) {
   return async () => {
     return await sshRun(
       sshProfileName,
-      pids.map((pid) => `kill ${pid}`).join('\n')
+      pids.map((pid) => `kill ${pid}`).join('\n'),
     )
   }
 }
@@ -76,7 +76,6 @@ function runningCommand(spawner: () => Deno.ChildProcess) {
     while (!killed) {
       process = spawner()
       const joined = mergeReadableStreams(process.stdout, process.stderr)
-
       ;(async () => {
         const lineStream = joined
           .pipeThrough(new TextDecoderStream())
@@ -120,7 +119,7 @@ async function main(
     controlPort: number
   },
   hostIp: string,
-  port: number
+  port: number,
 ) {
   sshProfileName ??= hostIp
   const secret = await crypto.subtle
@@ -131,8 +130,8 @@ async function main(
           args: ['-c', '8', '/dev/random'],
         })
           .output()
-          .then(({ stdout }) => new TextDecoder().decode(stdout))
-      )
+          .then(({ stdout }) => new TextDecoder().decode(stdout)),
+      ),
     )
     .then((b) => toHashString(b))
 

@@ -18,8 +18,8 @@ function acd() {
     echo "${result}"
   fi
 }
-source <(acdts completions bash | perl -pe 's/_acd_complete alias/COMP_WORDS=\"\${COMP_WORDS[@]}\" COMP_CWORD=\"\${COMP_CWORD}\" _acd_complete alias/')
 (nohup "${PATH_TO_ACD}" --listen >/dev/null 2>&1 &)
+source <(acdts completions bash | perl -pe 's/_acd_complete alias/COMP_WORDS=\"\${COMP_WORDS[@]}\" COMP_CWORD=\"\${COMP_CWORD}\" _acd_complete alias/')
 ```
 */
 

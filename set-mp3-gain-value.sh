@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -fue -o pipefail
 export LC_ALL=C

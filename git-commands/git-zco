@@ -2,7 +2,10 @@
 
 set -ue -o pipefail
 
-if [ "${Z_DATE:-}" = "" ]; then
+Z_DATE="${Z_DATE:-zcurrent}"
+if [[ "${Z_DATE:-}" = "zcurrent" ]]; then
   Z_DATE="$(date "+%Y-%m-%dT00:00:00")"
 fi
+Z_DATE="$(date -d "$(date -d "${Z_DATE}") + ${Z_DELTA:-0} days" "+%Y-%m-%dT%H:%M:%S")"
+
 GIT_AUTHOR_DATE=${Z_DATE} GIT_COMMITTER_DATE=${Z_DATE} git co --date=${Z_DATE} "${@}"

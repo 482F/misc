@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+gh repo create $(basename $(pwd)) --public --source=. --remote=origin
+git push -u origin master

@@ -14,9 +14,9 @@ import {
   KeyPressEvent,
 } from 'https://deno.land/x/cliffy@v1.0.0-rc.2/keypress/mod.ts'
 
-import * as esbuild from 'https://deno.land/x/esbuild@v0.19.4/wasm.js'
+import * as esbuild from 'https://deno.land/x/esbuild@v0.20.0/wasm.js'
 
-import { denoPlugins } from 'https://deno.land/x/esbuild_deno_loader@0.8.2/mod.ts'
+import { denoPlugins } from 'https://deno.land/x/esbuild_deno_loader@0.9.0/mod.ts'
 
 async function closestFilePath(
   dir: string,

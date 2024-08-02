@@ -115,8 +115,6 @@ function createWatcherAndUpdater() {
   const dummyWatcher = {
     close() {},
     async *[Symbol.asyncIterator]() {
-      // async iterator を deno が認識できてない？
-      // deno-lint-ignore no-await-in-sync-fn
       await new Promise(() => {})
       yield {
         kind: 'any' as const,

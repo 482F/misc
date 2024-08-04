@@ -89,6 +89,7 @@ async function getWriter(filePath: string, destPath: string, option: {
     async function write() {
       await spinnerStartPromise
 
+      await waitFilesExist([filePath])
       const result = await rebuild()
       const contents = result?.outputFiles?.[0]?.contents
       if (contents) {
@@ -109,6 +110,34 @@ async function getWriter(filePath: string, destPath: string, option: {
     },
     () => stop(),
   ] as const
+}
+
+async function wait<T>(
+  fn: () => T,
+  intervalMs: number,
+  timeoutMs: number,
+): Promise<Awaited<T>> {
+  let timeouted = false
+  setTimeout(() => {
+    timeouted = true
+  }, timeoutMs)
+
+  while (true) {
+    const result = await fn()
+    if (result) {
+      return result
+    }
+    await new Promise((resolve) => setTimeout(resolve, intervalMs))
+    if (timeouted) {
+      throw new Error('timeouted')
+    }
+  }
+}
+
+async function waitFilesExist(filePaths: string[]) {
+  for (const filePath of filePaths) {
+    await wait(() => Deno.open(filePath).catch(() => false), 100, 1000)
+  }
 }
 
 function createWatcherAndUpdater() {
@@ -135,7 +164,7 @@ function createWatcherAndUpdater() {
         }
       }
     },
-    (filePaths: string[]) => {
+    async (filePaths: string[]) => {
       // const diffLength = filePathSet.size !== filePaths.length
       // const hasNew =
       //   0 < filePaths.filter((path) => !filePathSet.has(path)).length
@@ -145,6 +174,7 @@ function createWatcherAndUpdater() {
       // if (diffLength || hasNew) {
       // filePathSet = new Set(filePaths)
       watcher.close()
+      await waitFilesExist(filePaths)
       watcher = Deno.watchFs(filePaths)
       // }
     },
@@ -208,7 +238,7 @@ if (import.meta.main) {
         }
 
         let relativeFilePaths = resolveRelativeFiles(inputs, [])
-        updater(relativeFilePaths)
+        await updater(relativeFilePaths)
         for await (const event of watcher()) {
           if (!['create', 'modify', 'remove'].includes(event.kind)) {
             continue
@@ -219,7 +249,7 @@ if (import.meta.main) {
             inputs,
             relativeFilePaths,
           )
-          updater(relativeFilePaths)
+          await updater(relativeFilePaths)
         }
         await stop()
       },

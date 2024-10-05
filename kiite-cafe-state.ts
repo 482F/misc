@@ -33,5 +33,9 @@ async function process() {
   ).spawn()
 }
 
-setInterval(process, 1000 * 60 * 10)
-process()
+;[
+  { func: process, interval: 1000 * 60 * 10 },
+].forEach(({ func, interval }) => {
+  setInterval(func, interval)
+  func()
+})

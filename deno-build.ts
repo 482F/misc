@@ -14,9 +14,9 @@ import {
   KeyPressEvent,
 } from 'https://deno.land/x/cliffy@v1.0.0-rc.2/keypress/mod.ts'
 
-import * as esbuild from 'https://deno.land/x/esbuild@v0.20.0/wasm.js'
+import * as esbuild from 'npm:esbuild@0.20.2'
 
-import { denoPlugins } from 'https://deno.land/x/esbuild_deno_loader@0.9.0/mod.ts'
+import { denoPlugins } from 'jsr:@luca/esbuild-deno-loader@0.11.1'
 
 async function closestFilePath(
   dir: string,
@@ -43,7 +43,6 @@ export async function getRebuilder(
 ) {
   const context = await esbuild.context({
     plugins: [...denoPlugins({
-      nodeModulesDir: true,
       configPath: configPath,
     })],
     entryPoints: [toFileUrl(resolve(filePath)).toString()],
@@ -55,6 +54,7 @@ export async function getRebuilder(
     format: 'esm',
     sourcemap: option.sourcemap,
     minify: option.minify,
+    write: false,
   })
   return [async function rebuild() {
     return await context.rebuild()

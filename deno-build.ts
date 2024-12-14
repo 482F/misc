@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --no-config --allow-env --allow-read --allow-write=. --allow-net --ext ts
+#!/usr/bin/env -S deno run --no-config --allow-run --allow-env --allow-read --allow-write=. --allow-net --ext ts
 
 import {
   dirname,
@@ -34,7 +34,7 @@ async function closestFilePath(
 }
 
 export async function getRebuilder(
-  filePath: string,
+  filePaths: string[],
   configPath: string | undefined,
   option: {
     minify: boolean
@@ -45,7 +45,7 @@ export async function getRebuilder(
     plugins: [...denoPlugins({
       configPath: configPath,
     })],
-    entryPoints: [toFileUrl(resolve(filePath)).toString()],
+    entryPoints: filePaths.map((filePath) => toFileUrl(resolve(filePath)).toString()),
     jsx: 'transform',
     jsxFactory: 'React.createElement',
     jsxImportSource: 'react',
@@ -80,7 +80,7 @@ async function getWriter(filePath: string, destPath: string, option: {
     (entry) => Boolean(entry.name.match(/deno\.jsonc?/)),
   ).then((path) => path ? resolve(path) : path)
 
-  const [rebuild, stop] = await getRebuilder(filePath, configPath, {
+  const [rebuild, stop] = await getRebuilder([filePath], configPath, {
     minify: option.minify,
     sourcemap: option.inlineSourcemap ? 'inline' : false,
   })
@@ -190,7 +190,6 @@ function resolveRelativeFiles(
   }
   return inputs
     .filter((url) => !url.startsWith('http'))
-    .map((path) => '/' + path)
 }
 
 async function waitCtrlC() {

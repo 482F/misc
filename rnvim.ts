@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --no-config --allow-run=tmux,nvim,nvim-qt,powershell.exe --allow-env=TMUX_PANE,HOME,LOCALAPPDATA,FROM_WIN --allow-read --allow-write --ext ts
+#!/usr/bin/env -S deno run --no-config --allow-run=tmux,nvim,powershell.exe --allow-env=TMUX_PANE,HOME,LOCALAPPDATA,FROM_WIN --allow-read --allow-write --ext ts
 
 if (Deno.env.get('FROM_WIN') === 'true' && Deno.build.os !== 'windows') {
   await new Deno.Command('powershell.exe', { args: ['rnvim', ...Deno.args] })
@@ -174,12 +174,7 @@ const [newArgs, piped, swpPromise] =
     ] as const
   })
 
-let exe = 'nvim'
-if (!serverExists && Deno.build.os === 'windows') {
-  exe = 'nvim-qt'
-  newArgs.splice(0, 0, '--')
-}
-const nvimPromise = nvim(exe, newArgs, piped)
+const nvimPromise = nvim('nvim', newArgs, piped)
 await swpPromise
 await nvimPromise
 

@@ -68,4 +68,5 @@ EOF
     git filter-branch -f --env-filter "${command}" ${filter_target}
 }
 
+cd "$(git rev-parse --show-superproject-working-tree --show-toplevel | head -1)" # git root dir
 zrb "${@}"

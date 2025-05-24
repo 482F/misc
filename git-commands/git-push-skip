@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+
+set -ue -o pipefail
+
+function push-skip() {
+  if ! git status | grep -q "nothing to commit, working tree clean"; then
+    echo working tree is not clean
+    exit 1
+  fi
+  local branch="$(git symbolic-ref HEAD | sed -e 's/^refs\/heads\///')"
+  local remote="$(git config "branch.$branch.remote")"
+  local remote_branch="$(git config "branch.$branch.merge" | grep -Po '(?<=^refs/heads/).+')"
+
+  local range="$remote/$remote_branch..$branch"
+  if [[ "$(git branch --list -a "$remote/$remote_branch" | wc -l)" == "0" ]]; then
+    range="$branch"
+  fi
+  local log="$(git log --format=format:%H:%s "$range")"
+  local nci=0
+  local i=0
+  while read -u 10 line; do
+    i=$((i+1))
+    if echo "$line" | grep -Pq '!!!no-push'; then
+      nci="$i"
+      break
+    fi
+  done 10< <(echo "$log")
+  local latest_hash="$(echo "$log" | sed -n "$((nci+1))p" | grep -Po '^[^:]+')"
+
+  # push 対象なし
+  if [[ "$latest_hash" == "" ]]; then
+    exit 0
+  fi
+
+  # no-push コミットがない、もしくはコミットの削除のみであれば普通に push する
+  if [[ "$latest_hash" == "$(git log -1 --format=format:%H)" ]] || [[ "$(git log "$range" | wc -l)" == "0" ]]; then
+    git push "$@"
+    exit $?
+  fi
+
+  # プッシュできるコミットがない場合は何もしない
+  if [[ "$latest_hash" == "" ]]; then
+    exit
+  fi
+
+  local branches="$(git branch)"
+
+  local temp="$branch'"
+  while echo $branches | grep -q "$temp"; do
+    temp="$temp'"
+  done
+
+  git branch $temp $latest_hash
+  git checkout $temp
+  git push "$@" "$remote" "$temp:$remote_branch" || true
+  git checkout "$branch"
+  git branch -D $temp
+}
+
+push-skip "${@}"

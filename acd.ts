@@ -20,6 +20,7 @@ function acd() {
 }
 (nohup "${PATH_TO_ACD}" --listen >/dev/null 2>&1 &)
 source <(acdts completions bash | perl -pe 's/_acd_complete alias/COMP_WORDS=\"\${COMP_WORDS[@]}\" COMP_CWORD=\"\${COMP_CWORD}\" _acd_complete alias/')
+source <(acdts completions zsh | perl -pe 's/__acd_complete alias alias/COMP_WORDS="\${words[@]}" COMP_CWORD="\$((CURRENT-1))" __acd_complete alias alias/')
 ```
 */
 

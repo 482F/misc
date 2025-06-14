@@ -208,6 +208,9 @@ new Command()
 
     if (!aliasAndRest) {
       const entries = Object.entries(json)
+        .toSorted(([, destA], [, destB]) =>
+          -1 * Number(destA < destB) + Number(destB < destA)
+        )
       const maxKeyLen = Math.max(...entries.map(([alias]) => alias.length))
       console.log(
         entries.map(([alias, dest]) =>

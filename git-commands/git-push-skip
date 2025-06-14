@@ -25,7 +25,13 @@ function push-skip() {
       break
     fi
   done 10< <(echo "$log")
-  local latest_hash="$(echo "$log" | sed -n "$((nci+1))p" | grep -Po '^[^:]+')"
+  local first_no_push_hash="$(git log --format=format:%H --grep '!!!no-push' "$range" | tail -n 1)"
+  local latest_hash
+  if [[ -n "$first_no_push_hash" ]]; then
+    latest_hash="$(git log --format=format:%H "$range" | grep -A 1 "$first_no_push_hash" | grep -v "$first_no_push_hash" | head -n 1 || true)"
+  else
+    latest_hash="$(git log -1 --format=format:%H "$range")"
+  fi
 
   # push 対象なし
   if [[ "$latest_hash" == "" ]]; then

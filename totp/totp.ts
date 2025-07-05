@@ -1,30 +1,44 @@
-#!/usr/bin/env -S deno run -A
+#!/usr/bin/env -S deno run --unstable-kv --allow-env=XDG_DATA_HOME --allow-read=${XDG_DATA_HOME}/totp.sqlite3 --allow-write=${XDG_DATA_HOME}/totp.sqlite3
 
 import { join } from 'https://deno.land/std@0.201.0/path/mod.ts'
 import { ArgumentValue, Command, Type } from 'jsr:@cliffy/command@1.0.0-rc.7'
 import { CompletionsCommand } from 'jsr:@cliffy/command@1.0.0-rc.7/completions'
 import { Secret } from 'jsr:@cliffy/prompt@1.0.0-rc.7'
-import { Database } from 'jsr:@db/sqlite@0.12'
 import { TOTP } from 'jsr:@hectorm/otpauth@9.3.5'
 
-function prepareDb() {
+async function prepareDb() {
   const dbPath = join(Deno.env.get('XDG_DATA_HOME'), 'totp.sqlite3')
-  const db = new Database(dbPath)
-  db.exec(`
-  CREATE TABLE IF NOT EXISTS totps (
-    id     INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    name   TEXT    NOT NULL UNIQUE,
-    secret TEXT    NOT NULL
-  )
-`)
-  return db
+  const kv = await Deno.openKv(dbPath)
+  return {
+    async allNames() {
+      return await Array.fromAsync(kv.list({ prefix: [] })).then((
+        arr,
+      ) => arr.map((v) => v.key[0]).filter((key) => typeof key === 'string'))
+    },
+    async getSecret(name: string) {
+      const encrypted = await kv.get<string>([name]).then((r) => r.value)
+      if (!encrypted) {
+        throw new Error(`no entry named "${name}"`)
+      }
+      return {
+        async decrypt(pass: string) {
+          return await decrypt(encrypted, pass)
+        },
+      }
+    },
+    async setSecret(name: string, plainSecret: string, pass: string) {
+      const encrypted = await encrypt(plainSecret, pass)
+      await kv.set([name], encrypted)
+    },
+    async remove(name: string) {
+      await kv.delete([name])
+    },
+  }
 }
 
 class NameType extends Type<string> {
   override async complete(): Promise<Array<string>> {
-    return prepareDb().sql<{ name: string }>`SELECT name FROM totps`.map((
-      { name },
-    ) => name)
+    return await prepareDb().then((db) => db.allNames())
   }
 
   parse(type: ArgumentValue): string {
@@ -95,7 +109,7 @@ new Command()
     { add: isAdd, 'delete': isDelete },
     name,
   ) {
-    const db = prepareDb()
+    const db = await prepareDb()
     if (isAdd) {
       const plainSecret = await Secret.prompt({
         message: 'Enter totp secret',
@@ -105,29 +119,21 @@ new Command()
         message: 'Enter passphrase',
         writer: Deno.stderr,
       })
-      const secret = await encrypt(plainSecret, pass)
-      db.sql`DELETE FROM totps WHERE name = ${name}`
-      db.sql`INSERT INTO totps (name, secret) VALUES (${name}, ${secret})`
+      db.setSecret(name, plainSecret, pass)
       return
     }
 
     if (isDelete) {
-      db.sql`DELETE FROM totps WHERE name = ${name}`
+      await db.remove(name)
       return
     }
 
+    const secret = await db.getSecret(name)
     const pass = await Secret.prompt({
       message: 'Enter passphrase',
       writer: Deno.stderr,
     })
-    const secret = db.sql<
-      { secret: string }
-    >`SELECT secret FROM totps WHERE name = ${name}`[0]?.secret
-    if (!secret) {
-      console.error('no matched entry')
-      return
-    }
-    const plainSecret = await decrypt(secret, pass)
+    const plainSecret = await secret.decrypt(pass)
     const totp = new TOTP({
       issuer: 'ACME',
       label: name,

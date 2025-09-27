@@ -1,5 +1,5 @@
 #!/usr/bin/env -S deno run --ext ts
-import { delay } from 'https://deno.land/std@0.161.0/async/mod.ts'
+import { delay } from 'jsr:@std/async'
 import { Command } from 'https://deno.land/x/cliffy@v0.25.7/command/mod.ts'
 
 const dayMs = 1000 * 60 * 60 * 24

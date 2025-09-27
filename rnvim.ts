@@ -147,13 +147,19 @@ if (Deno.build.os === 'windows') {
 const [newArgs, piped, swpPromise] =
   await (async (): Promise<[string[], boolean, Promise<void> | null]> => {
     if (serverExists) {
-      const newArgs = ['--server', address, '--remote-tab', ...resolvedArgs]
-      const waitIndex = newArgs.indexOf('--wait')
-      if (waitIndex !== -1) {
+      const newArgs = [
+        '--server',
+        address,
+        '--remote-tab',
+        ...resolvedArgs.filter((arg, i) =>
+          !arg.startsWith('-') && !resolvedArgs[i - 1]?.match(/^-(?=[^-])/)
+        ),
+      ]
+      if (resolvedArgs.includes('--wait')) {
         return [
           newArgs,
           true,
-          waitSwpFileRemove(resolvedArgs.filter(isFileArg)),
+          waitSwpFileRemove(newArgs.filter(isFileArg)),
         ]
       } else {
         return [newArgs, true, null]

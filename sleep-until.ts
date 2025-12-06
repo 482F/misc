@@ -13,32 +13,57 @@ function parseTime(ms: number) {
 }
 
 async function main(_: unknown, time: string) {
-  const rawTimes = time.match(
-    /((?<y>\d{4})\/(?<mo>\d{2})\/(?<d>\d{2}) )?(?<h>\d{2}):(?<mi>\d{2})/,
-  )?.groups
-  if (!rawTimes) {
+  const times = (() => {
+    const rawTimes = time.match(
+      /((?<y>\d{4})\/(?<mo>\d{2})\/(?<d>\d{2}) )?(?<h>\d{2}):(?<mi>\d{2})/,
+    )?.groups
+    if (!rawTimes) {
+      return
+    }
+    return Object.fromEntries(
+      Object.entries(rawTimes).map(([key, rawValue]) => {
+        const value = Number(rawValue)
+        return [key, isNaN(value) ? null : value]
+      }),
+    )
+  })()
+
+  const deltaMs = (() => {
+    const groups = [...time.matchAll(/(?<num>\d+)(?<unit>[a-z]+)/g)]
+      .map(({ groups }) => groups)
+      .filter((v) => v != null)
+    const multipliers: { [unit in string]: number } = {
+      ms: 1,
+      s: 1000,
+      m: 1000 * 60,
+      h: 1000 * 60 * 60,
+      d: 1000 * 60 * 60 * 24,
+    }
+    return groups.reduce(
+      (sum, { num, unit }) => sum + Number(num) * (multipliers[unit] ?? 0),
+      0,
+    )
+  })()
+
+  const now = new Date()
+  const target = new Date()
+  if (times) {
+    target.setFullYear(times.y ?? target.getFullYear())
+    target.setMonth(times.mo ? times.mo - 1 : target.getMonth())
+    target.setDate(times.d ?? target.getDate())
+    target.setHours(times.h ?? 0)
+    target.setMinutes(times.mi ?? 0)
+    target.setSeconds(0)
+    target.setMilliseconds(0)
+  } else if (deltaMs) {
+    target.setMilliseconds(target.getMilliseconds() + deltaMs)
+  } else {
     throw new Error('引数の形式が不正です')
   }
 
-  const times = Object.fromEntries(
-    Object.entries(rawTimes).map(([key, rawValue]) => {
-      const value = Number(rawValue)
-      return [key, isNaN(value) ? null : value]
-    }),
-  )
-  const now = new Date()
-  const target = new Date()
-  target.setFullYear(times.y ?? target.getFullYear())
-  target.setMonth(times.mo ? times.mo - 1 : target.getMonth())
-  target.setDate(times.d ?? target.getDate())
-  target.setHours(times.h ?? 0)
-  target.setMinutes(times.mi ?? 0)
-  target.setSeconds(0)
-  target.setMilliseconds(0)
-
   const targetTime = (() => {
     const time = target.getTime()
-    if (time < now.getTime() && times.d === null) {
+    if (time < now.getTime() && times?.d === null) {
       return time + dayMs
     } else {
       return time

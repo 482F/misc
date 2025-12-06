@@ -30,6 +30,7 @@ import {
   Command,
   CompletionsCommand,
   Type,
+  ValidationError
 } from 'https://deno.land/x/cliffy@v0.25.7/command/mod.ts'
 import { messengerCreator } from '482f-utils/common.ts'
 
@@ -233,7 +234,10 @@ new Command()
       })
     } else {
       const [alias = '', ...rest] = aliasAndRest.split(SEP)
-      const dest = json[alias] ?? Deno.cwd()
+      const dest = json[alias]
+      if (!dest) {
+        throw new ValidationError(`Alias "${alias}" is not exists`)
+      }
       console.log(`cd "${join(dest, ...rest)}"`)
     }
   })

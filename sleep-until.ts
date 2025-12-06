@@ -94,7 +94,7 @@ async function main(_: unknown, time: string) {
 }
 
 new Command()
-  .name('ownserver-aio')
+  .name('sleep-until')
   .arguments('<time:string>')
   .action(main)
   .parse(Deno.args)

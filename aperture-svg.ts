@@ -145,4 +145,4 @@ function draw(bladeNumber: number, gapRate: number) {
   console.log(svg.output())
 }
 
-draw(8, 0.1)
+draw(7, 0.1)
